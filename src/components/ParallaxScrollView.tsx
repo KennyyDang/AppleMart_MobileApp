@@ -1,5 +1,5 @@
 import type { PropsWithChildren, ReactElement } from 'react';
-import { StyleSheet, Platform, View } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import Animated, {
   interpolate,
   useAnimatedRef,
@@ -7,13 +7,8 @@ import Animated, {
   useScrollViewOffset,
 } from 'react-native-reanimated';
 
-// import { useColorScheme } from '@react-native-appearance';
-import { useColorScheme } from 'react-native';
-import React from 'react';
-
-const theme = useColorScheme(); // 'light' hoặc 'dark'
-
-console.log(theme); // Kiểm tra xem đang ở chế độ nào
+import { ThemedView } from '@/components/ThemedView';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 const HEADER_HEIGHT = 250;
 
@@ -49,7 +44,7 @@ export default function ParallaxScrollView({
   });
 
   return (
-    <View style={styles.container}>
+    <ThemedView style={styles.container}>
       <Animated.ScrollView
         ref={scrollRef}
         scrollEventThrottle={16}
@@ -62,9 +57,9 @@ export default function ParallaxScrollView({
           ]}>
           {headerImage}
         </Animated.View>
-        <View style={styles.content}>{children}</View>
+        <ThemedView style={styles.content}>{children}</ThemedView>
       </Animated.ScrollView>
-    </View>
+    </ThemedView>
   );
 }
 

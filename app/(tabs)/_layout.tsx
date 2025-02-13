@@ -1,28 +1,24 @@
+import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Platform } from 'react-native';
+import { useColorScheme } from 'react-native';
 
 export default function TabLayout() {
+  const colorScheme = useColorScheme();
+
   return (
     <Tabs
       screenOptions={{
-        tabBarStyle: {
-          backgroundColor: '#000000',
-          borderTopWidth: 0,
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-        },
-        tabBarActiveTintColor: '#ffffff',
-        tabBarInactiveTintColor: '#86868b',
         headerShown: false,
-      }}
-    >
+        tabBarStyle: {
+          backgroundColor: colorScheme === 'dark' ? '#000' : '#fff',
+        },
+        tabBarActiveTintColor: colorScheme === 'dark' ? '#fff' : '#000',
+      }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'For You',
+          title: 'Home',
           tabBarIcon: ({ color }) => (
             <Ionicons name="person-outline" size={24} color={color} />
           ),
@@ -66,4 +62,4 @@ export default function TabLayout() {
       />
     </Tabs>
   );
-}
+} 
