@@ -1,7 +1,11 @@
-import { Redirect } from 'expo-router';
 import React from 'react';
+import { registerRootComponent } from 'expo';
+import AppNavigator from './navigation/AppNavigator';
 
-export default function Index() {
-  return <Redirect href="/(tabs)" />;
-  //cc
-} 
+const App = () => {
+  return <AppNavigator />;
+};
+
+registerRootComponent(App);
+
+export default App;
