@@ -9,3 +9,5 @@ export default function DiscoverScreen() {
     </View>
   );
 } 
+
+//cc
