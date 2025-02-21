@@ -10,6 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
+      
     },
     "android": {
       "adaptiveIcon": {

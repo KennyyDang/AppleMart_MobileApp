@@ -19,6 +19,10 @@ const ManageScreen = () => {
     { name: 'Green', population: 10, color: 'green', legendFontColor: '#7F7F7F', legendFontSize: 15 },
   ];
 
+  // function rgba(arg0: number, arg1: number, arg2: number, $: any, arg4: { opacity: number; }): string {
+  //   throw new Error('Function not implemented.');
+  // }
+
   return (
     <View style={styles.screenContainer}>
       <Text style={styles.header}>Manage screen</Text>
