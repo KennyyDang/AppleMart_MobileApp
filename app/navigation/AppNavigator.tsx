@@ -1,15 +1,21 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
+import { NavigationContainer } from '@react-navigation/native';
 import { View, Text, StyleSheet } from 'react-native';
 import { Calendar, BookmarkSimple, Gear } from 'phosphor-react-native';
 import { PieChart } from 'react-native-chart-kit';
 import { Dimensions } from 'react-native';
-import OrderScreen from '../screens/OrderScreen'; // Đã import đúng
-import SettingScreen from '../screens/SettingScreen'; // Đã import đúng
+
+// Import các màn hình
+import OrderScreen from '../screens/OrderScreen';
+import SettingScreen from '../screens/SettingScreen';
+import LoginScreen from '../screens/LoginScreen'; // Import màn hình đăng nhập
 
 const screenWidth = Dimensions.get('window').width;
 
 const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
 
 const ManageScreen = () => {
   const data = [
@@ -18,10 +24,6 @@ const ManageScreen = () => {
     { name: 'Blue', population: 20, color: 'blue', legendFontColor: '#7F7F7F', legendFontSize: 15 },
     { name: 'Green', population: 10, color: 'green', legendFontColor: '#7F7F7F', legendFontSize: 15 },
   ];
-
-  // function rgba(arg0: number, arg1: number, arg2: number, $: any, arg4: { opacity: number; }): string {
-  //   throw new Error('Function not implemented.');
-  // }
 
   return (
     <View style={styles.screenContainer}>
@@ -45,7 +47,8 @@ const ManageScreen = () => {
   );
 };
 
-const AppNavigator = () => {
+// Tạo Bottom Tab Navigator cho màn hình chính
+const MainTabNavigator = () => {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -64,19 +67,29 @@ const AppNavigator = () => {
       />
       <Tab.Screen
         name="Order"
-        component={OrderScreen} // Thay View bằng OrderScreen
+        component={OrderScreen}
         options={{
           tabBarIcon: ({ color }) => <BookmarkSimple size={24} color={color} />, 
         }}
       />
       <Tab.Screen
         name="Setting"
-        component={SettingScreen} // Thay View bằng SettingScreen
+        component={SettingScreen}
         options={{
           tabBarIcon: ({ color }) => <Gear size={24} color={color} />, 
         }}
       />
     </Tab.Navigator>
+  );
+};
+
+// Tạo Stack Navigator để điều hướng từ LoginScreen vào MainTabNavigator
+const AppNavigator = () => {
+  return (
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Login" component={LoginScreen as React.ComponentType<any>} />
+        <Stack.Screen name="Main" component={MainTabNavigator} />
+      </Stack.Navigator>
   );
 };
 

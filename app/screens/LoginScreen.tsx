@@ -1,15 +1,36 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RouteProp } from '@react-navigation/native';
 
-const LoginScreen = () => {
+// Định nghĩa kiểu navigation
+type RootStackParamList = {
+  Login: undefined;
+  Main: undefined;
+};
+
+type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
+type LoginScreenRouteProp = RouteProp<RootStackParamList, 'Login'>;
+
+interface LoginScreenProps {
+  navigation: LoginScreenNavigationProp;
+  route: LoginScreenRouteProp;
+}
+
+const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  const handleLogin = () => {
+    // Thực hiện xác thực đăng nhập ở đây (có thể gọi API)
+    // Nếu đăng nhập thành công, chuyển sang màn hình chính
+    navigation.replace('Main'); // Xoá màn hình đăng nhập khỏi stack và vào màn hình chính
+  };
 
   return (
     <View style={styles.container}>
       {/* Logo */}
-      {/* <Image source={require('../assets/Apple.png')} style={styles.logo} />   */}
-      
+      <Image source={require('../../assets/Apple.png')} style={styles.logo} />
       {/* Input Fields */}
       <TextInput
         style={styles.input}
@@ -35,7 +56,7 @@ const LoginScreen = () => {
       </TouchableOpacity>
 
       {/* Login Button */}
-      <TouchableOpacity style={styles.loginButton}>
+      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
         <Text style={styles.loginText}>Login</Text>
       </TouchableOpacity>
 
@@ -58,12 +79,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#fff',
   },
-//   logo: {
-//     width: 100,
-//     height: 100,
-//     marginBottom: 40,
-//     resizeMode: 'contain',
-//   },
+  logo: {
+    width: '50%', // Chiếm 60% chiều rộng màn hình
+    height: undefined, // Để height tự động tính theo tỷ lệ
+    aspectRatio: 1, // Giữ tỷ lệ vuông (1:1)
+    marginBottom: 50,
+    resizeMode: 'contain',
+  },
+  
   input: {
     width: '80%',
     height: 50,
