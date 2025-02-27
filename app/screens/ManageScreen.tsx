@@ -1,12 +1,12 @@
 // app/screens/ManageScreen.tsx
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Header from '../components/Header';
+// import Header from '../components/Header';
 
 const ManageScreen = () => {
   return (
     <View style={styles.screenContainer}>
-      <Header title="Manage" />
+      {/* <Header title="Manage" /> */}
       <Text style={styles.screenText}>Manage Products</Text>
     </View>
   );
