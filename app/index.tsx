@@ -39,20 +39,6 @@ const App = () => {
       console.log('Notification tapped:', data);
     });
 
-    /* firebase
-    messaging().getToken().then(token => {
-      console.log('FCM Token:', token);
-    });
-
-    messaging().onMessage(async remoteMessage => {
-      Alert.alert(remoteMessage.notification.title, remoteMessage.notification.body);
-    });
-
-    messaging().setBackgroundMessageHandler(async remoteMessage => {
-      console.log('Background message:', remoteMessage);
-    });
-    */
-
     return () => {
       // expo
       if (notificationListener.current) {
