@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "436662325204",
+    "project_id": "applemart-16731",
+    "storage_bucket": "applemart-16731.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:436662325204:android:4d9e83043ad93101ad1041",
+        "android_client_info": {
+          "package_name": "com.applemart.pushnotification"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBOBnJt1SHVy373x0htriYyoxqZ8S7fppU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
