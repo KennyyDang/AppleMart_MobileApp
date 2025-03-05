@@ -10,6 +10,7 @@ import ManageScreen from '../screens/ManageScreen';
 import OrderScreen from '../screens/OrderScreen';
 import SettingScreen from '../screens/SettingScreen';
 import LoginScreen from '../screens/LoginScreen'; 
+import BlogScreen from '../screens/BlogScreen'; 
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -37,6 +38,13 @@ const MainTabNavigator = () => {
         component={OrderScreen}
         options={{
           tabBarIcon: ({ color }) => <BookmarkSimple size={24} color={color} />, 
+        }}
+      />
+      <Tab.Screen
+        name="Blog"
+        component={BlogScreen}
+        options={{
+        tabBarIcon: ({ color }) => <BookmarkSimple size={24} color={color} />, 
         }}
       />
       <Tab.Screen
