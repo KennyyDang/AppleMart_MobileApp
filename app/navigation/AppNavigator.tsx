@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { NavigationContainer } from '@react-navigation/native';
 import { StyleSheet } from 'react-native';
-import { Calendar, BookmarkSimple, Gear } from 'phosphor-react-native';
+import { Calendar, BookmarkSimple, Gear, AppleLogo, AlignBottom, AppWindow } from 'phosphor-react-native';
 
 // Import màn hình
 import ManageScreen from '../screens/ManageScreen';
@@ -11,6 +11,7 @@ import OrderScreen from '../screens/OrderScreen';
 import SettingScreen from '../screens/SettingScreen';
 import LoginScreen from '../screens/LoginScreen'; 
 import BlogScreen from '../screens/BlogScreen'; 
+import AddBlogScreen from '../screens/AddBlogScreen'; 
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -30,7 +31,7 @@ const MainTabNavigator = () => {
         name="Manage"
         component={ManageScreen}
         options={{
-          tabBarIcon: ({ color }) => <Calendar size={24} color={color} />, 
+          tabBarIcon: ({ color }) => <AlignBottom size={24} color={color} />, 
         }}
       />
       <Tab.Screen
@@ -44,8 +45,16 @@ const MainTabNavigator = () => {
         name="Blog"
         component={BlogScreen}
         options={{
-        tabBarIcon: ({ color }) => <BookmarkSimple size={24} color={color} />, 
+        tabBarIcon: ({ color }) => <AppleLogo size={24} color={color} />, 
         }}
+      />
+      <Tab.Screen
+        name="AddBlog"
+        component={AddBlogScreen}
+        options={{
+          tabBarIcon: ({ color }) => <AppWindow size={24} color={color} />, 
+          }}
+        
       />
       <Tab.Screen
         name="Setting"
@@ -62,7 +71,7 @@ const MainTabNavigator = () => {
 const AppNavigator = () => {
   return (
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Login" component={LoginScreen} />
+         <Stack.Screen name="Login" component={LoginScreen as React.ComponentType<any>} />
         <Stack.Screen name="Main" component={MainTabNavigator} />
       </Stack.Navigator>
   );
