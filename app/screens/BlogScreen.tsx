@@ -1,204 +1,309 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
+// BlogScreen.tsx
+import React, { useEffect, useState } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  FlatList, 
+  TouchableOpacity, 
+  RefreshControl,
+  Image,
+  ActivityIndicator
+} from 'react-native';
+import { useNavigation,  } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
-import { useNavigation, NavigationProp, ParamListBase } from '@react-navigation/native';
+import { fetchAllBlogs, BlogPost, fetchBlogById, likeBlog, deleteBlog } from '../services/BlogApiService';
+import { StackNavigationProp } from '@react-navigation/stack';
 
+type BlogStackParamList = {
+  BlogList: undefined;
+  AddBlog: undefined;
+  EditBlog: { blog: BlogPost };
+  BlogDetail: { blogId: number };
+};
 
-type BlogScreenNavigationProp = NavigationProp<ParamListBase>;
+type BlogNavigationProp = StackNavigationProp<BlogStackParamList, 'BlogList'>;
 
 const BlogScreen = () => {
-  // Properly type the navigation
-  const navigation = useNavigation<BlogScreenNavigationProp>();
-  const blogPosts = [
-    {
-      id: '1',
-      title: 'Apple giới thiệu MacBook Air mới với chip M4 và có màu xanh da trời',
-      date: '05 tháng 2 2025',
-      type: 'THÔNG BÁO BÁO CHÍ'
-    },
-    {
-      id: '2',
-      title: 'Apple ra mắt Mac Studio mới, máy Mac mạnh mẽ nhất từ trước tới nay',
-      date: '01 tháng 2 2025',
-      type: 'THÔNG BÁO BÁO CHÍ'
-    },
-    {
-      id: '3',
-      title: 'Apple ra mắt iPhone 16e',
-      date: '19 tháng 2 2025',
-      type: 'THÔNG BÁO BÁO CHÍ'
-    },
-    {
-      id: '4',
-      title: 'Apple mở Apple Developer Academy thứ tư tại Indonesia',
-      date: '15 tháng 2 2025',
-      type: 'CẬP NHẬT'
-    }
-  ];
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const navigation = useNavigation<BlogNavigationProp>();
+  const loadBlogPosts = async () => {
+    setLoading(true);
+    const data = await fetchAllBlogs();
+    console.log("Fetched Blogs:", data);
+    setBlogPosts(data);
+    setLoading(false);
+    setRefreshing(false);
+  };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>New Blog</Text>
-      </View>
-      
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Featured Article (Large) */}
-        <View style={styles.featuredArticle}>
-         
-          <View style={styles.featuredContent}>
-            <Text style={styles.postType}>{blogPosts[0].type}</Text>
-            <Text style={styles.featuredTitle}>{blogPosts[0].title}</Text>
-            <Text style={styles.date}>{blogPosts[0].date}</Text>
-          </View>
-        </View>
+
+  useEffect(() => {
+    loadBlogPosts();
+    console.log("Updated BlogPosts state:", blogPosts);
+    const unsubscribe = navigation.addListener('focus', loadBlogPosts);
+    return () => {
+      unsubscribe();
+    };
+  }, [navigation]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadBlogPosts();
+  };
+
+  const handleViewBlog = async (blog: BlogPost) => {
+    if (!blog.blogID) return; 
+
+    await fetchBlogById(blog.blogID);
+    navigation.navigate('BlogDetail', { blogId: blog.blogID });
+};
+
+const handleLikeBlog = async (blogId: number) => {
+  const success = await likeBlog(blogId);
+  if (success) {
+    setBlogPosts((prevPosts) =>
+      prevPosts.map((blog) =>
+        blog.blogID === blogId ? { ...blog, like: (blog.like || 0) + 1 } : blog
+      )
+    );
+  }
+};
+
+  const handleEditBlog = (blog: BlogPost) => {
+    if (!blog.blogID) return; 
+    navigation.navigate('EditBlog', { blog });
+  };
+
+  const handleDeleteBlog = async (blogId: number) => {
+    try {
+      const success = await deleteBlog(blogId);
+      if (success) {
+        loadBlogPosts();
+      } else {
+        alert('Xóa bài viết thất bại.');
+      }
+    } catch (error) {
+      console.error('Lỗi xóa bài viết:', error);
+      alert('Đã xảy ra lỗi khi xóa bài viết.');
+    }
+  };
+
+  const renderBlogItem = ({ item }: { item: BlogPost }) => (
+    <TouchableOpacity 
+      style={styles.blogCard} 
+      onPress={() => handleViewBlog(item)}
+    >
+      <View style={styles.cardContent}>
+        <Text style={styles.blogTitle}>{item.title}</Text>
+        <Text style={styles.blogAuthor}>By {item.author || 'Unknown'}</Text>
+        <Text style={styles.blogPreview} numberOfLines={2}>
+          {item.content}
+        </Text>
         
-        {/* Secondary Articles */}
-        <View style={styles.secondaryRow}>
-          <View style={styles.secondaryArticle}>
-        
-            <View style={styles.secondaryContent}>
-              <Text style={styles.postType}>{blogPosts[1].type}</Text>
-              <Text style={styles.secondaryTitle}>{blogPosts[1].title}</Text>
-              <Text style={styles.date}>{blogPosts[1].date}</Text>
-            </View>
+        <View style={styles.blogStats}>
+          <View style={styles.statItem}>
+            <Feather name="eye" size={14} color="#666" />
+            <Text style={styles.statText}>{item.view || 0}</Text>
           </View>
           
-          <View style={styles.secondaryArticle}>
-   
-            <View style={styles.secondaryContent}>
-              <Text style={styles.postType}>{blogPosts[2].type}</Text>
-              <Text style={styles.secondaryTitle}>{blogPosts[2].title}</Text>
-              <Text style={styles.date}>{blogPosts[2].date}</Text>
-            </View>
-          </View>
+          <TouchableOpacity 
+            style={styles.statItem} 
+            onPress={() => item.blogID && handleLikeBlog(item.blogID)}
+          >
+            <Feather name="heart" size={14} color="#666" />
+            <Text style={styles.statText}>{item.like || 0}</Text>
+          </TouchableOpacity>
+          
+          <Text style={styles.dateText}>
+            {new Date(item.uploadDate || Date.now()).toLocaleDateString()}
+          </Text>
         </View>
-        
-        {/* Small Article */}
-        <View style={styles.smallArticle}>
-          <Image 
-            style={styles.smallImage}
-            resizeMode="cover"
-          />
-          <View style={styles.smallContent}>
-            <Text style={styles.postType}>{blogPosts[3].type}</Text>
-            <Text style={styles.smallTitle}>{blogPosts[3].title}</Text>
-            <Text style={styles.date}>{blogPosts[3].date}</Text>
-          </View>
-        </View>
-      </ScrollView>
+      </View>
       
-    </SafeAreaView>
+      <View style={styles.cardActions}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => handleEditBlog(item)}
+        >
+          <Feather name="edit" size={16} color="#6C63FF" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => item.blogID && handleDeleteBlog(item.blogID)}
+        >
+          <Feather name="trash-2" size={16} color="#FF6C63" />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Blog</Text>
+        <TouchableOpacity 
+          style={styles.addButton}
+          onPress={() => navigation.navigate('AddBlog')}
+        >
+          <Feather name="plus" size={20} color="white" />
+          <Text style={styles.addButtonText}>Tạo bài viết</Text>
+        </TouchableOpacity>
+      </View>
+
+      {loading && !refreshing ? (
+        <ActivityIndicator size="large" color="#6C63FF" style={styles.loader} />
+      ) : (
+        <FlatList
+          data={blogPosts}
+          keyExtractor={(item, index) => item.blogID ? item.blogID.toString() : `blog-${index}`}
+          renderItem={renderBlogItem}
+          contentContainerStyle={styles.listContainer}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Feather name="file-text" size={48} color="#ccc" />
+              <Text style={styles.emptyText}>Không có bài viết nào</Text>
+              <TouchableOpacity 
+                style={styles.createButton}
+                onPress={() => navigation.navigate('AddBlog')}
+              >
+                <Text style={styles.createButtonText}>Tạo bài viết đầu tiên</Text>
+              </TouchableOpacity>
+            </View>
+          }
+        />
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8f8f8',
   },
   header: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 10,
-    backgroundColor: 'white',
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  featuredArticle: {
-    backgroundColor: 'white',
-    borderRadius: 8,
-    overflow: 'hidden',
-    margin: 8,
-    marginBottom: 4,
-  },
-  featuredImage: {
-    width: '100%',
-    height: 200,
-  },
-  featuredContent: {
-    padding: 10,
-  },
-  featuredTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  postType: {
-    fontSize: 12,
-    color: '#888',
-    marginBottom: 4,
-  },
-  date: {
-    fontSize: 12,
-    color: '#888',
-  },
-  secondaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginHorizontal: 4,
-  },
-  secondaryArticle: {
-    flex: 1,
+    alignItems: 'center',
+    padding: 16,
     backgroundColor: 'white',
-    borderRadius: 8,
-    overflow: 'hidden',
-    margin: 4,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
   },
-  secondaryImage: {
-    width: '100%',
-    height: 120,
-  },
-  secondaryContent: {
-    padding: 10,
-  },
-  secondaryTitle: {
-    fontSize: 14,
+  headerTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 5,
   },
-  smallArticle: {
+  addButton: {
     flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#6C63FF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  addButtonText: {
+    color: 'white',
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  listContainer: {
+    padding: 16,
+  },
+  blogCard: {
     backgroundColor: 'white',
-    borderRadius: 8,
+    borderRadius: 12,
+    marginBottom: 16,
     overflow: 'hidden',
-    margin: 8,
-    marginTop: 4,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
   },
-  smallImage: {
-    width: 80,
-    height: 80,
+  cardContent: {
+    padding: 16,
   },
-  smallContent: {
-    flex: 1,
-    padding: 10,
-    justifyContent: 'center',
-  },
-  smallTitle: {
-    fontSize: 14,
+  blogTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 5,
+    marginBottom: 4,
   },
-  fabButton: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'white',
+  blogAuthor: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 8,
+  },
+  blogPreview: {
+    fontSize: 14,
+    color: '#444',
+    marginBottom: 12,
+  },
+  blogStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  statText: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 4,
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 'auto',
+  },
+  cardActions: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  actionButton: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRightWidth: 1,
+    borderRightColor: '#f0f0f0',
+  },
+  loader: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#999',
+  },
+  createButton: {
+    marginTop: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#6C63FF',
+    borderRadius: 20,
+  },
+  createButtonText: {
+    color: 'white',
+    fontWeight: '500',
   },
 });
 

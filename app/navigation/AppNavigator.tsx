@@ -4,7 +4,6 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { NavigationContainer } from '@react-navigation/native';
 import { StyleSheet } from 'react-native';
 import { Calendar, BookmarkSimple, Gear, AppleLogo, AlignBottom, AppWindow } from 'phosphor-react-native';
-
 // Import màn hình
 import ManageScreen from '../screens/ManageScreen';
 import OrderScreen from '../screens/OrderScreen';
@@ -12,12 +11,34 @@ import SettingScreen from '../screens/SettingScreen';
 import LoginScreen from '../screens/LoginScreen'; 
 import BlogScreen from '../screens/BlogScreen'; 
 import AddBlogScreen from '../screens/AddBlogScreen'; 
-// import RegisterScreen from '../screens/RegisterScreen';
 
+import EditBlogScreen from '../screens/EditBlogScreen';
+import BlogDetailScreen from '../screens/BlogDetailScreen';
+import { BlogPost } from '../services/BlogApiService';
+
+type BlogStackParamList = {
+  BlogList: undefined;
+  AddBlog: undefined;
+  EditBlog: { blog: BlogPost };
+  BlogDetail: { blogId: number };
+};
 
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
+const BlogStack = createStackNavigator<BlogStackParamList>();
+
+// Tạo Stack Navigator cho phần Blog
+const BlogStackNavigator = () => {
+  return (
+    <BlogStack.Navigator screenOptions={{ headerShown: false }}>
+      <BlogStack.Screen name="BlogList" component={BlogScreen} />
+      <BlogStack.Screen name="AddBlog" component={AddBlogScreen} />
+      <BlogStack.Screen name="EditBlog" component={EditBlogScreen} />
+      <BlogStack.Screen name="BlogDetail" component={BlogDetailScreen} />
+    </BlogStack.Navigator>
+  );
+};
 
 // Tạo Bottom Tab Navigator cho màn hình chính
 const MainTabNavigator = () => {
@@ -46,18 +67,10 @@ const MainTabNavigator = () => {
       />
       <Tab.Screen
         name="Blog"
-        component={BlogScreen}
+        component={BlogStackNavigator}
         options={{
-        tabBarIcon: ({ color }) => <AppleLogo size={24} color={color} />, 
+          tabBarIcon: ({ color }) => <AppleLogo size={24} color={color} />, 
         }}
-      />
-      <Tab.Screen
-        name="AddBlog"
-        component={AddBlogScreen}
-        options={{
-          tabBarIcon: ({ color }) => <AppWindow size={24} color={color} />, 
-          }}
-        
       />
       <Tab.Screen
         name="Setting"
@@ -70,13 +83,10 @@ const MainTabNavigator = () => {
   );
 };
 
-// Tạo Stack Navigator để điều hướng từ LoginScreen vào MainTabNavigator
 const AppNavigator = () => {
   return (
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-         <Stack.Screen name="Login" component={LoginScreen as React.ComponentType<any>} />
-        <Stack.Screen name="Login" component={LoginScreen} />
-        {/* <Stack.Screen name="Register" component={RegisterScreen} /> */}
+        <Stack.Screen name="Login" component={LoginScreen as React.ComponentType<any>} />
         <Stack.Screen name="Main" component={MainTabNavigator} />
       </Stack.Navigator>
   );
@@ -102,9 +112,8 @@ const styles = StyleSheet.create({
   },
   tabBarLabel: {
     fontSize: 12,
-    fontWeight: '600', // ✅ Thay thế giá trị hợp lệ
+    fontWeight: '600',
   },
 });
-
 
 export default AppNavigator;

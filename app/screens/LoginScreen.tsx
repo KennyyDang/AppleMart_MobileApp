@@ -36,6 +36,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     try {
       const response = await axios.post(`${API_URL}/api/Account/Login`, { email, password });
 
+
       console.log('API response:', response.data);
 
       const { accessToken, refreshToken, userID, userName, name } = response.data;
