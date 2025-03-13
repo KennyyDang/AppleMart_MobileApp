@@ -22,8 +22,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [password, setPassword] = useState('');
 
   const handleLogin = () => {
-    // Thực hiện xác thực đăng nhập ở đây (có thể gọi API)
-    // Nếu đăng nhập thành công, chuyển sang màn hình chính
+
     navigation.replace('Main'); // Xoá màn hình đăng nhập khỏi stack và vào màn hình chính
   };
 

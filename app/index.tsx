@@ -1,11 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { registerRootComponent } from 'expo';
 import AppNavigator from './navigation/AppNavigator';
-import * as Notifications from 'expo-notifications'; // expo
+import * as Notifications from 'expo-notifications';
 import { registerForPushNotificationsAsync } from './utils/notifications';
 import { Alert } from 'react-native';
+import axios from 'axios';
 
-// expo
+// Configure axios for self-signed certificates (only for development)
+axios.defaults.timeout = 10000;
+
+if (__DEV__) {
+  // For development only - ignore self-signed certificate errors
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+
+// Configure push notifications
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
