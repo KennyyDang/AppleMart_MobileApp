@@ -11,6 +11,9 @@ import OrderScreen from '../screens/OrderScreen';
 import SettingScreen from '../screens/SettingScreen';
 import LoginScreen from '../screens/LoginScreen'; 
 import BlogScreen from '../screens/BlogScreen'; 
+// import RegisterScreen from '../screens/RegisterScreen';
+
+
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -63,6 +66,7 @@ const AppNavigator = () => {
   return (
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Login" component={LoginScreen} />
+        {/* <Stack.Screen name="Register" component={RegisterScreen} /> */}
         <Stack.Screen name="Main" component={MainTabNavigator} />
       </Stack.Navigator>
   );
