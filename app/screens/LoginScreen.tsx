@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import {
+  View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert
+} from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import { Ionicons } from '@expo/vector-icons'; // Import icon để bật/tắt mật khẩu
 
 // Định nghĩa kiểu navigation
 type RootStackParamList = {
@@ -17,20 +23,54 @@ interface LoginScreenProps {
   route: LoginScreenRouteProp;
 }
 
+const API_URL = 'http://192.168.2.23:5069';
+
+
 const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [secureTextEntry, setSecureTextEntry] = useState(true); // Trạng thái ẩn/hiện mật khẩu
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
+    console.log("Trying to login with:", email, password);
+    try {
+      const response = await axios.post(`${API_URL}/api/Account/Login`, { email, password });
 
-    navigation.replace('Main'); // Xoá màn hình đăng nhập khỏi stack và vào màn hình chính
+
+      console.log('API response:', response.data);
+
+      const { accessToken, refreshToken, userID, userName, name } = response.data;
+
+      if (accessToken && refreshToken) {
+        // Lưu vào AsyncStorage
+        await AsyncStorage.multiSet([
+          ['accessToken', accessToken],
+          ['refreshToken', refreshToken],
+          ['userID', userID],
+          ['userName', userName],
+          ['name', name]
+        ]);
+
+        // Điều hướng sang trang chính
+        navigation.replace('Main');
+      } else {
+        Alert.alert('Lỗi', 'Thông tin đăng nhập không hợp lệ!');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Sai email hoặc mật khẩu. Vui lòng thử lại!';
+      console.log('Login error:', errorMessage);
+      Alert.alert('Lỗi', errorMessage);
+    }
   };
+
+
 
   return (
     <View style={styles.container}>
       {/* Logo */}
       <Image source={require('../../assets/Apple.png')} style={styles.logo} />
-      {/* Input Fields */}
+
+      {/* Email Input */}
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -40,18 +80,29 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         keyboardType="email-address"
         autoCapitalize="none"
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor="#7F7F7F"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+
+      {/* Password Input với Icon để hiển thị mật khẩu */}
+      <View style={styles.passwordContainer}>
+        <TextInput
+          style={styles.passwordInput}
+          placeholder="Password"
+          placeholderTextColor="#7F7F7F"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry={secureTextEntry} // Ẩn/hiện mật khẩu
+        />
+        <TouchableOpacity onPress={() => setSecureTextEntry(!secureTextEntry)}>
+          <Ionicons
+            name={secureTextEntry ? 'eye-off' : 'eye'}
+            size={24}
+            color="#7F7F7F"
+          />
+        </TouchableOpacity>
+      </View>
 
       {/* Forgot Password */}
       <TouchableOpacity style={styles.forgotPassword}>
-        <Text style={styles.forgotText}>Forgot password?</Text>
+        <Text style={styles.forgotText}>Quên mật khẩu?</Text>
       </TouchableOpacity>
 
       {/* Login Button */}
@@ -60,11 +111,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       </TouchableOpacity>
 
       {/* Sign Up */}
-      <TouchableOpacity>
+      <TouchableOpacity onPress={() => navigation.navigate('Register')}>
         <Text style={styles.signupText}>
-          Don't have an account? <Text style={{ fontWeight: 'bold' }}>Sign up</Text>
+          Bạn không có tài khoản? <Text style={{ fontWeight: 'bold' }}>Đăng ký</Text>
         </Text>
       </TouchableOpacity>
+
     </View>
   );
 };
@@ -79,13 +131,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   logo: {
-    width: '50%', // Chiếm 60% chiều rộng màn hình
-    height: undefined, // Để height tự động tính theo tỷ lệ
-    aspectRatio: 1, // Giữ tỷ lệ vuông (1:1)
+    width: '50%',
+    height: undefined,
+    aspectRatio: 1,
     marginBottom: 50,
     resizeMode: 'contain',
   },
-  
   input: {
     width: '80%',
     height: 50,
@@ -95,6 +146,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     marginBottom: 15,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '80%',
+    height: 50,
+    backgroundColor: '#F0EAFB',
+    borderRadius: 25,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 15,
+  },
+  passwordInput: {
+    flex: 1,
+    height: 50,
   },
   forgotPassword: {
     alignSelf: 'flex-end',
