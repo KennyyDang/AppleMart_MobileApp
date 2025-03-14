@@ -84,12 +84,16 @@ const BlogDetailScreen = () => {
       </View>
 
       <ScrollView style={styles.content}>
-        {blog.imageUrl && (
-          <Image source={{ uri: blog.imageUrl }} style={styles.featuredImage} resizeMode="cover" />
-        )}
-        <Text style={styles.blogTitle}>{blog.title}</Text>
-        <Text style={styles.blogContent}>{blog.content}</Text>
-      </ScrollView>
+  {blog.imageUrl ? (
+    <Image source={{ uri: blog.imageUrl.startsWith('http') ? blog.imageUrl : `${API_URL}/${blog.imageUrl}` }} 
+           style={styles.featuredImage} 
+           resizeMode="cover" />
+  ) : (
+    <Text style={styles.noImageText}>Không có ảnh</Text>
+  )}
+  <Text style={styles.blogTitle}>{blog.title}</Text>
+  <Text style={styles.blogContent}>{blog.content}</Text>
+</ScrollView>
     </View>
   );
 };

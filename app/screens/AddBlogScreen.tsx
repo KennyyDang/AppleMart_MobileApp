@@ -26,12 +26,13 @@ type BlogNavigationProp = StackNavigationProp<BlogStackParamList, "BlogList">;
 
 const AddBlogScreen = () => {
   const navigation = useNavigation<BlogNavigationProp>();
-  const [productID, setProductID] = useState<string>("");
+  const [productId, setProductId] = useState<string>("");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const [category, setCategory] = useState("THÔNG BÁO BÁO CHÍ"); // Giá trị mặc định
   const [loading, setLoading] = useState(false);
+  const [productIdError, setProductIdError] = useState<string | null>(null);
 
   // Chọn ảnh từ thư viện
   const pickImage = async () => {
@@ -46,51 +47,71 @@ const AddBlogScreen = () => {
     }
 
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [16, 9],
       quality: 0.8,
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setImage(result.assets[0].uri as any);
+      setImage(result.assets[0].uri);
     }
   };
 
-  // Xử lý đăng bài
+  // Validate product ID
+  const validateProductId = (id: string): boolean => {
+    const numId = parseInt(id);
+    if (isNaN(numId) || numId <= 0) {
+      setProductIdError("ID sản phẩm phải là số nguyên dương");
+      return false;
+    }
+    setProductIdError(null);
+    return true;
+  };
+
   const handlePublishBlog = async () => {
     // Kiểm tra các trường bắt buộc
     if (!title.trim()) {
       Alert.alert("Thông báo", "Vui lòng nhập tiêu đề bài viết");
       return;
     }
-
+  
     if (!content.trim()) {
       Alert.alert("Thông báo", "Vui lòng nhập nội dung bài viết");
       return;
     }
-
+    
+    if (!productId || !validateProductId(productId)) {
+      Alert.alert("Thông báo", productIdError || "Vui lòng nhập ID sản phẩm hợp lệ");
+      return;
+    }
+  
     setLoading(true);
-
+  
     try {
       // Tạo FormData nếu có ảnh
       let imageUrl = "";
       if (image) {
         imageUrl = "https://placeholder-url-for-image.com/image123.jpg";
       }
-
+  
+      // Đảm bảo đúng định dạng mà API mong đợi
       const blogData = {
-        title: title?.trim(),  // Trim để loại bỏ khoảng trắng
-        content: content?.trim(),
-        author: "Unknown",
-        category: category,
-        imageUrl: imageUrl,
-        uploadDate: new Date().toISOString(),
+        Title: title.trim(),
+        Content: content.trim(),
+        Author: "Unknown", // Đảm bảo có giá trị
+        // Use ProductId instead of ProductID - case matters!
+        ProductId: parseInt(productId), // Parse để đảm bảo là số
+        Category: category,
+        ImageUrl: imageUrl,
+        UploadDate: new Date().toISOString()
       };
-
+  
+      console.log("Sending blog data:", blogData);
+  
       // Gọi API để tạo bài viết mới
       const result = await createBlog(blogData);
-
+  
       if (result) {
         Alert.alert("Thành công", "Bài viết đã được đăng thành công", [
           { text: "OK", onPress: () => navigation.navigate("BlogList") },
@@ -98,15 +119,24 @@ const AddBlogScreen = () => {
       } else {
         Alert.alert("Lỗi", "Không thể đăng bài viết. Vui lòng thử lại sau.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error publishing blog:", error.response?.data || error);
-      Alert.alert("Lỗi", "Đã xảy ra lỗi khi đăng bài viết");
+      let errorMessage = "Đã xảy ra lỗi khi đăng bài viết";
+      
+      // Extract more specific error message if available
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCategorySelect = (selectedCategory) => {
+  const handleCategorySelect = (selectedCategory: string) => {
     setCategory(selectedCategory);
   };
 
@@ -128,14 +158,22 @@ const AddBlogScreen = () => {
       </View>
 
       <View style={styles.formContainer}>
-        <Text style={styles.label}>ID Sản phẩm</Text>
+        <Text style={styles.label}>ID Sản phẩm <Text style={styles.requiredField}>*</Text></Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, productIdError ? styles.inputErrorStyle : null]}
           placeholder="Nhập ID sản phẩm"
-          value={productID.toString()} // Ép kiểu an toàn
-          onChangeText={(text) => setProductID(text.replace(/[^0-9]/g, ""))} // Chỉ nhận số
+          value={productId}
+          onChangeText={(text) => {
+            // Chỉ cho phép nhập số
+            const numericValue = text.replace(/[^0-9]/g, "");
+            setProductId(numericValue);
+            if (numericValue) validateProductId(numericValue);
+          }}
+          keyboardType="numeric"
         />
-        <Text style={styles.label}>Tiêu đề</Text>
+        {productIdError && <Text style={styles.errorText}>{productIdError}</Text>}
+        
+        <Text style={styles.label}>Tiêu đề <Text style={styles.requiredField}>*</Text></Text>
         <TextInput
           style={styles.input}
           placeholder="Nhập tiêu đề bài viết"
@@ -155,7 +193,7 @@ const AddBlogScreen = () => {
           )}
         </TouchableOpacity>
 
-        <Text style={styles.label}>Nội dung</Text>
+        <Text style={styles.label}>Nội dung <Text style={styles.requiredField}>*</Text></Text>
         <TextInput
           style={[styles.input, styles.contentInput]}
           placeholder="Viết nội dung bài viết của bạn tại đây..."
@@ -261,6 +299,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 16,
   },
+  requiredField: {
+    color: 'red',
+  },
   input: {
     backgroundColor: "white",
     borderRadius: 8,
@@ -268,6 +309,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: "#e0e0e0",
+  },
+  inputErrorStyle: {
+    borderColor: "red",
+  },
+  errorText: {
+    color: "red",
+    fontSize: 12,
+    marginTop: 4,
   },
   contentInput: {
     height: 200,
