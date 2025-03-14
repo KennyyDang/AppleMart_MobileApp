@@ -1,9 +1,11 @@
 import axios from 'axios';
 
-const API_URL = "http://192.168.1.15:5069/api/Blog";
+// const API_URL = "http://192.168.1.15:5069/api/Blog";
+const API_URL = "http://192.168.1.7:5069/api/Blog";
+// const API_URL = "http://192.168.1.8:5069/api/Blog"; //ethenet
 
 export interface BlogPost {
-  productID?: number;
+  productId?: number;
   blogID?: number;
   title: string;
   content: string;
@@ -21,11 +23,8 @@ export interface BlogPost {
 export const fetchAllBlogs = async (): Promise<BlogPost[]> => {
   try {
     const response = await axios.get(API_URL);
-    console.log("API Response:", response.data);
 
     let blogs = response.data?.$values ? response.data.$values : response.data;
-    
-    console.log("Processed Blogs:", blogs); // Kiểm tra dữ liệu sau khi xử lý
 
     return blogs;
   } catch (error) {
@@ -46,19 +45,51 @@ export const fetchBlogById = async (id: number): Promise<BlogPost | null> => {
 };
 
 // Create a new blog post
-export const createBlog = async (BlogPost) => {
+export const createBlog = async (blogPost: any) => {
   try {
-    console.log("Sending blog data:", JSON.stringify(BlogPost, null, 2));
+    const formData = new FormData();
 
-    const response = await axios.post(`${API_URL}`, BlogPost, {
+    formData.append('Title', blogPost.Title || blogPost.title || '');
+    formData.append('Content', blogPost.Content || blogPost.content || '');
+    formData.append('Author', blogPost.Author || blogPost.author || 'Unknown');
+    const productId = blogPost.ProductId || blogPost.productID || blogPost.productId;
+    if (productId) {
+      const productIdNum = parseInt(productId.toString());
+      if (productIdNum > 0) {
+        formData.append('ProductId', productIdNum.toString());
+        formData.append('ProductID', productIdNum.toString());
+        formData.append('productId', productIdNum.toString());
+        formData.append('productID', productIdNum.toString());
+      } else {
+        throw new Error('ProductId must be a positive number');
+      }
+    } else {
+      throw new Error('ProductId is required');
+    }
+    if (blogPost.Category || blogPost.category) {
+      formData.append('Category', blogPost.Category || blogPost.category);
+    }
+    
+    if (blogPost.ImageUrl || blogPost.imageUrl) {
+      formData.append('ImageUrl', blogPost.ImageUrl || blogPost.imageUrl);
+    }
+    
+    if (blogPost.UploadDate || blogPost.uploadDate) {
+      formData.append('UploadDate', blogPost.UploadDate || blogPost.uploadDate);
+    }
+    
+    console.log("Sending form data to API with fields:", 
+      Object.fromEntries(formData.entries()));
+    
+    const response = await axios.post(API_URL, formData, {
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'multipart/form-data',
       },
     });
 
     console.log("Blog created successfully:", response.data);
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in createBlog:", error.response?.data || error);
     throw error;
   }
@@ -86,12 +117,10 @@ export const deleteBlog = async (id: number): Promise<boolean> => {
   }
 };
 
-
-
 // Like a blog post
 export const likeBlog = async (id: number): Promise<boolean> => {
   try {
-    const response = await axios.post(`${API_URL}/${id}/like`);
+    const response = await axios.post(`${API_URL}/${id}`);
     return response.status === 200;
   } catch (error) {
     console.error(`Error liking blog ${id}:`, error);

@@ -32,7 +32,6 @@ const BlogScreen = () => {
   const loadBlogPosts = async () => {
     setLoading(true);
     const data = await fetchAllBlogs();
-    console.log("Fetched Blogs:", data);
     setBlogPosts(data);
     setLoading(false);
     setRefreshing(false);
