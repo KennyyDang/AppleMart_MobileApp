@@ -47,23 +47,16 @@ export const fetchBlogById = async (id: number): Promise<BlogPost | null> => {
 // Create a new blog post
 export const createBlog = async (blogPost: any) => {
   try {
-    // Tạo FormData vì backend yêu cầu multipart/form-data
     const formData = new FormData();
-    
-    // Handle required fields
+
     formData.append('Title', blogPost.Title || blogPost.title || '');
     formData.append('Content', blogPost.Content || blogPost.content || '');
     formData.append('Author', blogPost.Author || blogPost.author || 'Unknown');
-    
-    // Handle ProductId - make sure it's a valid number AND using the correct field name
-    // The backend might be expecting 'ProductId' not 'ProductID'
     const productId = blogPost.ProductId || blogPost.productID || blogPost.productId;
     if (productId) {
-      // Make sure it's a positive number
       const productIdNum = parseInt(productId.toString());
       if (productIdNum > 0) {
         formData.append('ProductId', productIdNum.toString());
-        // Also try different casing in case the API is case-sensitive
         formData.append('ProductID', productIdNum.toString());
         formData.append('productId', productIdNum.toString());
         formData.append('productID', productIdNum.toString());
@@ -73,8 +66,6 @@ export const createBlog = async (blogPost: any) => {
     } else {
       throw new Error('ProductId is required');
     }
-    
-    // Thêm các trường tùy chọn
     if (blogPost.Category || blogPost.category) {
       formData.append('Category', blogPost.Category || blogPost.category);
     }
