@@ -31,6 +31,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [secureTextEntry, setSecureTextEntry] = useState(true); // Trạng thái ẩn/hiện mật khẩu
 
+  const handleLogin1 = () => {
+    navigation.replace('Main');
+  };
+
   const handleLogin = async () => {
     console.log("Trying to login with:", email, password);
     try {
@@ -110,6 +114,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         <Text style={styles.loginText}>Login</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity style={styles.loginButton1} onPress={handleLogin1}>
+        <Text style={styles.loginText}>Login as Guest</Text>
+      </TouchableOpacity>
+
       {/* Sign Up */}
       <TouchableOpacity onPress={() => navigation.navigate('Register')}>
         <Text style={styles.signupText}>
@@ -173,6 +181,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   loginButton: {
+    width: '80%',
+    height: 50,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 25,
+    marginBottom: 20,
+  },
+  loginButton1: {
     width: '80%',
     height: 50,
     backgroundColor: '#007AFF',
