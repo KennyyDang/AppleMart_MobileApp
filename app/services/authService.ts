@@ -5,6 +5,7 @@ import axios from 'axios';
 
 const API_URL = 'http://192.168.2.23:5069';
 
+
 export const refreshToken = async () => {
     try {
         const token = await AsyncStorage.getItem('refreshToken');
@@ -26,26 +27,29 @@ export const refreshToken = async () => {
         } else {
             throw new Error('Invalid refresh token response');
         }
-    } catch (error) {
+    } catch (error: any) {
         console.log('Refresh token error:', error);
         throw error;
     }
 };
 
 export const registerUser = async ({
+    name,
     email,
     password,
-    name,
+    confirmPassword,
 }: {
+    name: string;
     email: string;
     password: string;
-    name: string;
+    confirmPassword: string;
 }) => {
     try {
         const response = await axios.post(`${API_URL}/api/Account/Register`, {
+            name,
             email,
             password,
-            name,
+            confirmPassword,
         });
 
         if (response.status !== 200) {
@@ -53,9 +57,14 @@ export const registerUser = async ({
         }
 
         return response.data;
-    } catch (error) {
-        console.log('Register error:', error.response?.data || error.message);
-        throw new Error(error.response?.data?.message || 'Đăng ký thất bại');
+    } catch (error: any) {
+        if (axios.isAxiosError(error)) {
+            console.log('Register error:', error.response?.data || error.message);
+            throw new Error(error.response?.data?.message || 'Đăng ký thất bại');
+        } else {
+            console.log('Register error:', (error as Error).message);
+            throw new Error('Đăng ký thất bại');
+        }
     }
 };
 

@@ -9,6 +9,7 @@ import ManageScreen from '../screens/ManageScreen';
 import OrderScreen from '../screens/OrderScreen';
 import SettingScreen from '../screens/SettingScreen';
 import LoginScreen from '../screens/LoginScreen'; 
+import RegisterScreen from '../screens/RegisterScreen'; 
 import BlogScreen from '../screens/BlogScreen'; 
 import AddBlogScreen from '../screens/AddBlogScreen'; 
 
@@ -87,6 +88,7 @@ const AppNavigator = () => {
   return (
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Login" component={LoginScreen as React.ComponentType<any>} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Main" component={MainTabNavigator} />
       </Stack.Navigator>
   );
