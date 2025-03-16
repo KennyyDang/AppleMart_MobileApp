@@ -1,8 +1,9 @@
 import axios from 'axios';
 
-// const API_URL = "http://192.168.1.15:5069/api/Blog";
-// const API_URL = "http://192.168.1.7:5069/api/Blog";
-const API_URL = "http://192.168.1.178:5069/api/Blog";
+
+const API_URL = "http://192.168.2.23:5069/api/Blog"; 
+
+
 
 export interface BlogPost {
   productId?: number;

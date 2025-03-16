@@ -14,6 +14,7 @@ import '../../assets/Apple.png'
 type RootStackParamList = {
   Login: undefined;
   Main: undefined;
+  Register: undefined;
 };
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
@@ -24,7 +25,8 @@ interface LoginScreenProps {
   route: LoginScreenRouteProp;
 }
 
-const API_URL = 'http://192.168.1.178:5069';
+
+const API_URL = 'http://192.168.2.23:5069'; //API của server mỗi người khác nhau 
 
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
@@ -32,31 +34,30 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [secureTextEntry, setSecureTextEntry] = useState(true); // Trạng thái ẩn/hiện mật khẩu
 
-  const handleLogin1 = () => {
-    navigation.replace('Main');
-  };
-
   const handleLogin = async () => {
     console.log("Trying to login with:", email, password);
     try {
+
       const response = await axios.post(`${API_URL}/api/Account/Login`, { email, password });
-
-
+  
       console.log('API response:', response.data);
 
       const { accessToken, refreshToken, userID, userName, name } = response.data;
 
+  
       if (accessToken && refreshToken) {
-        // Lưu vào AsyncStorage
+        const currentUser = {
+          userID,
+          userName,
+          name
+        };
+      
         await AsyncStorage.multiSet([
           ['accessToken', accessToken],
           ['refreshToken', refreshToken],
-          ['userID', userID],
-          ['userName', userName],
-          ['name', name]
+          ['currentUser', JSON.stringify(currentUser)] // 👈 Lưu user object
         ]);
-
-        // Điều hướng sang trang chính
+  
         navigation.replace('Main');
       } else {
         Alert.alert('Lỗi', 'Thông tin đăng nhập không hợp lệ!');
@@ -66,9 +67,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       console.log('Login error:', errorMessage);
       Alert.alert('Lỗi', errorMessage);
     }
-  };
-
-
+  };  
 
   return (
     <View style={styles.container}>
@@ -113,10 +112,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       {/* Login Button */}
       <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
         <Text style={styles.loginText}>Login</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.loginButton1} onPress={handleLogin1}>
-        <Text style={styles.loginText}>Login as Guest</Text>
       </TouchableOpacity>
 
       {/* Sign Up */}
