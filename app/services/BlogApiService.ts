@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 // const API_URL = "http://192.168.1.15:5069/api/Blog";
-const API_URL = "http://192.168.1.7:5069/api/Blog";
-// const API_URL = "http://192.168.1.8:5069/api/Blog"; //ethenet
+// const API_URL = "http://192.168.1.7:5069/api/Blog";
+const API_URL = "http://192.168.1.178:5069/api/Blog";
 
 export interface BlogPost {
   productId?: number;
@@ -18,6 +18,8 @@ export interface BlogPost {
   like?: number;
   isDeleted?: boolean;
 }
+
+
 
 // Fetch all blog posts
 export const fetchAllBlogs = async (): Promise<BlogPost[]> => {
@@ -126,4 +128,7 @@ export const likeBlog = async (id: number): Promise<boolean> => {
     console.error(`Error liking blog ${id}:`, error);
     return false;
   }
-};
+}
+
+
+

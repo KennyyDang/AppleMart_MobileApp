@@ -1,7 +1,7 @@
 import { sendPushNotification } from './notifications';
 
 export async function testNotification() {
-    const expoPushToken = 'ExponentPushToken[CLcK2UMbOj8v8TB0UtzxQi]'; // kiem cai nay` trong terminal lúc chạy expo
+    const expoPushToken = 'ExponentPushToken[CLcK2UMbOj8v8TB0UtzxQi]';
 
     try {
         await sendPushNotification(expoPushToken);
@@ -9,4 +9,4 @@ export async function testNotification() {
     } catch (error) {
         console.error('Error sending test notification:', error);
     }
-} 
+}

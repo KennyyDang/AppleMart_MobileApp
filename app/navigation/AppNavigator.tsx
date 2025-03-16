@@ -4,16 +4,19 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { NavigationContainer } from '@react-navigation/native';
 import { StyleSheet } from 'react-native';
 import { Calendar, BookmarkSimple, Gear, AppleLogo, AlignBottom, AppWindow } from 'phosphor-react-native';
-// Import màn hình
-import ManageScreen from '../screens/ManageScreen';
-import OrderScreen from '../screens/OrderScreen';
-import SettingScreen from '../screens/SettingScreen';
-import LoginScreen from '../screens/LoginScreen'; 
-import BlogScreen from '../screens/BlogScreen'; 
-import AddBlogScreen from '../screens/AddBlogScreen'; 
 
-import EditBlogScreen from '../screens/EditBlogScreen';
-import BlogDetailScreen from '../screens/BlogDetailScreen';
+import ManageScreen from '../screens/ManageScreen';
+import SettingScreen from '../screens/SettingScreen';
+
+import LoginScreen from '../screens/LoginScreen'; 
+
+import OrderScreen from '../screens/order/OrderScreen';
+
+import BlogScreen from '../screens/blogs/BlogScreen'; 
+import AddBlogScreen from '../screens/blogs/AddBlogScreen'; 
+import EditBlogScreen from '../screens/blogs/EditBlogScreen';
+import BlogDetailScreen from '../screens/blogs/BlogDetailScreen';
+
 import { BlogPost } from '../services/BlogApiService';
 
 type BlogStackParamList = {

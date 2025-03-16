@@ -8,6 +8,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { Ionicons } from '@expo/vector-icons'; // Import icon để bật/tắt mật khẩu
+import '../../assets/Apple.png'
 
 // Định nghĩa kiểu navigation
 type RootStackParamList = {
@@ -23,7 +24,7 @@ interface LoginScreenProps {
   route: LoginScreenRouteProp;
 }
 
-const API_URL = 'http://192.168.2.23:5069';
+const API_URL = 'http://192.168.1.178:5069';
 
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
