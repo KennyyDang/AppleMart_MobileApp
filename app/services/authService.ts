@@ -21,7 +21,7 @@ export const refreshToken = async () => {
         if (accessToken && newRefreshToken) {
             await AsyncStorage.multiSet([
                 ['accessToken', accessToken],
-                ['refreshToken', newRefreshToken]
+                ['refreshToken', newRefreshToken],                
             ]);
             return accessToken;
         } else {
@@ -67,4 +67,25 @@ export const registerUser = async ({
         }
     }
 };
+
+export const logout = async () => {
+    try {
+      await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
+      console.log('Logged out successfully.');
+    } catch (error) {
+      console.log('Logout error:', error);
+      throw error;
+    }
+  };
+
+export const getCurrentUser = async () => {
+    try {
+      const json = await AsyncStorage.getItem('currentUser');
+      return json ? JSON.parse(json) : null;
+    } catch (error) {
+      console.log('Lỗi khi lấy user từ storage:', error);
+      return null;
+    }
+  };
+  
 

@@ -44,12 +44,16 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   
       if (accessToken && refreshToken) {
+        const currentUser = {
+          userID,
+          userName,
+          name
+        };
+      
         await AsyncStorage.multiSet([
           ['accessToken', accessToken],
           ['refreshToken', refreshToken],
-          ['userID', userID],
-          ['userName', userName],
-          ['name', name]
+          ['currentUser', JSON.stringify(currentUser)] // 👈 Lưu user object
         ]);
   
         navigation.replace('Main');
