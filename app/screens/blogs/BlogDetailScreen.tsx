@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
-import { fetchBlogById, BlogPost, likeBlog } from '../services/BlogApiService';
+import { BlogPost, fetchBlogById, likeBlog } from '../../services/BlogApiService';
 
 type BlogStackParamList = {
   BlogList: undefined;
