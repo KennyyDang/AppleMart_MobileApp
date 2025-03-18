@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -10,10 +10,10 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { BlogPost, updateBlog } from "../services/BlogApiService";
+import { BlogPost, createBlog } from '../../services/BlogApiService';
 import { StackNavigationProp } from "@react-navigation/stack";
 
 type BlogStackParamList = {
@@ -24,51 +24,15 @@ type BlogStackParamList = {
 };
 type BlogNavigationProp = StackNavigationProp<BlogStackParamList, "BlogList">;
 
-type RootStackParamList = {
-  EditBlog: { blog: BlogPost };
-  // Add other screens if needed
-};
-
-type EditBlogRouteProp = RouteProp<RootStackParamList, "EditBlog">;
-
-const EditBlogScreen = () => {
+const AddBlogScreen = () => {
   const navigation = useNavigation<BlogNavigationProp>();
-  const route = useRoute<EditBlogRouteProp>();
-  const blog = route.params?.blog;
-
   const [productId, setProductId] = useState<string>("");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [image, setImage] = useState<string | null>(null);
-  const [category, setCategory] = useState("THÔNG BÁO BÁO CHÍ");
+  const [category, setCategory] = useState("THÔNG BÁO BÁO CHÍ"); // Giá trị mặc định
   const [loading, setLoading] = useState(false);
   const [productIdError, setProductIdError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (blog) {
-      setTitle(blog.title || "");
-      setContent(blog.content || "");
-      setCategory(blog.category || "THÔNG BÁO BÁO CHÍ");
-      if (blog.imageUrl) {
-        setImage(blog.imageUrl);
-      }
-      // Fix: Chuyển productID từ number sang string
-      if (blog.productId !== undefined && blog.productId !== null) {
-        setProductId(String(blog.productId));
-      }
-    }
-  }, [blog]);
-
-  // Validate product ID
-  const validateProductId = (id: string): boolean => {
-    const numId = parseInt(id);
-    if (isNaN(numId) || numId <= 0) {
-      setProductIdError("ID sản phẩm phải là số nguyên dương");
-      return false;
-    }
-    setProductIdError(null);
-    return true;
-  };
 
   // Chọn ảnh từ thư viện
   const pickImage = async () => {
@@ -94,87 +58,78 @@ const EditBlogScreen = () => {
     }
   };
 
-  // Xử lý cập nhật bài viết
-  const handleUpdateBlog = async () => {
+  // Validate product ID
+  const validateProductId = (id: string): boolean => {
+    const numId = parseInt(id);
+    if (isNaN(numId) || numId <= 0) {
+      setProductIdError("ID sản phẩm phải là số nguyên dương");
+      return false;
+    }
+    setProductIdError(null);
+    return true;
+  };
+
+  const handlePublishBlog = async () => {
     // Kiểm tra các trường bắt buộc
     if (!title.trim()) {
       Alert.alert("Thông báo", "Vui lòng nhập tiêu đề bài viết");
       return;
     }
-
+  
     if (!content.trim()) {
       Alert.alert("Thông báo", "Vui lòng nhập nội dung bài viết");
       return;
     }
-
+    
     if (!productId || !validateProductId(productId)) {
-      Alert.alert(
-        "Thông báo",
-        productIdError || "Vui lòng nhập ID sản phẩm hợp lệ"
-      );
+      Alert.alert("Thông báo", productIdError || "Vui lòng nhập ID sản phẩm hợp lệ");
       return;
     }
-
-    if (!blog || !blog.blogID) {
-      Alert.alert("Lỗi", "Không tìm thấy thông tin bài viết để cập nhật");
-      return;
-    }
-
+  
     setLoading(true);
-
+  
     try {
       // Tạo FormData nếu có ảnh
-      let imageUrl = blog.imageUrl;
-      if (image && image !== blog.imageUrl) {
-        // Trong tình huống thực tế, bạn sẽ upload ảnh lên server trước
-        // Sau đó nhận URL trả về để lưu vào blog post
-
-        // Giả định ảnh đã được upload và có URL
-        imageUrl = image;
+      let imageUrl = "";
+      if (image) {
+        imageUrl = "https://placeholder-url-for-image.com/image123.jpg";
       }
-
-      // Tạo đối tượng blog cập nhật
+  
+      // Đảm bảo đúng định dạng mà API mong đợi
       const blogData = {
-        blogID: blog.blogID,
-        title: title.trim(),
-        content: content.trim(),
-        author: blog.author || "Current User",
-        category: category,
-        imageUrl: imageUrl,
-        uploadDate: blog.uploadDate,
-        updateDate: new Date().toISOString(),
-        view: blog.view || 0,
-        like: blog.like || 0,
-        isDeleted: blog.isDeleted || false,
-        productID: parseInt(productId), // Ensure productID is included
+        Title: title.trim(),
+        Content: content.trim(),
+        Author: "Unknown", // Đảm bảo có giá trị
+        // Use ProductId instead of ProductID - case matters!
+        ProductId: parseInt(productId), // Parse để đảm bảo là số
+        Category: category,
+        ImageUrl: imageUrl,
+        UploadDate: new Date().toISOString()
       };
-
-      console.log("Updating blog with data:", blogData);
-
-      // Gọi API để cập nhật bài viết
-      const result = await updateBlog(blogData);
-
+  
+      console.log("Sending blog data:", blogData);
+  
+      // Gọi API để tạo bài viết mới
+      const result = await createBlog(blogData);
+  
       if (result) {
-        Alert.alert("Thành công", "Bài viết đã được cập nhật thành công", [
+        Alert.alert("Thành công", "Bài viết đã được đăng thành công", [
           { text: "OK", onPress: () => navigation.navigate("BlogList") },
         ]);
       } else {
-        Alert.alert(
-          "Lỗi",
-          "Không thể cập nhật bài viết. Vui lòng thử lại sau."
-        );
+        Alert.alert("Lỗi", "Không thể đăng bài viết. Vui lòng thử lại sau.");
       }
     } catch (error: any) {
-      console.error("Error updating blog:", error.response?.data || error);
-      let errorMessage = "Đã xảy ra lỗi khi cập nhật bài viết";
-
+      console.error("Error publishing blog:", error.response?.data || error);
+      let errorMessage = "Đã xảy ra lỗi khi đăng bài viết";
+      
       // Extract more specific error message if available
       if (error.message) {
         errorMessage = error.message;
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       }
-
+      
       Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
@@ -190,7 +145,7 @@ const EditBlogScreen = () => {
       {loading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#6C63FF" />
-          <Text style={styles.loadingText}>Đang cập nhật bài viết...</Text>
+          <Text style={styles.loadingText}>Đang đăng bài...</Text>
         </View>
       )}
 
@@ -198,32 +153,27 @@ const EditBlogScreen = () => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Feather name="arrow-left" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Chỉnh sửa bài viết</Text>
+        <Text style={styles.headerTitle}>Tạo bài viết mới</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <View style={styles.formContainer}>
-        <Text style={styles.label}>
-          ID Sản phẩm <Text style={styles.requiredField}>*</Text>
-        </Text>
+        <Text style={styles.label}>ID Sản phẩm <Text style={styles.requiredField}>*</Text></Text>
         <TextInput
           style={[styles.input, productIdError ? styles.inputErrorStyle : null]}
           placeholder="Nhập ID sản phẩm"
-          value={productId} 
+          value={productId}
           onChangeText={(text) => {
+            // Chỉ cho phép nhập số
             const numericValue = text.replace(/[^0-9]/g, "");
             setProductId(numericValue);
             if (numericValue) validateProductId(numericValue);
           }}
           keyboardType="numeric"
         />
-        {productIdError && (
-          <Text style={styles.errorText}>{productIdError}</Text>
-        )}
-
-        <Text style={styles.label}>
-          Tiêu đề <Text style={styles.requiredField}>*</Text>
-        </Text>
+        {productIdError && <Text style={styles.errorText}>{productIdError}</Text>}
+        
+        <Text style={styles.label}>Tiêu đề <Text style={styles.requiredField}>*</Text></Text>
         <TextInput
           style={styles.input}
           placeholder="Nhập tiêu đề bài viết"
@@ -243,9 +193,7 @@ const EditBlogScreen = () => {
           )}
         </TouchableOpacity>
 
-        <Text style={styles.label}>
-          Nội dung <Text style={styles.requiredField}>*</Text>
-        </Text>
+        <Text style={styles.label}>Nội dung <Text style={styles.requiredField}>*</Text></Text>
         <TextInput
           style={[styles.input, styles.contentInput]}
           placeholder="Viết nội dung bài viết của bạn tại đây..."
@@ -313,11 +261,11 @@ const EditBlogScreen = () => {
         </View>
 
         <TouchableOpacity
-          style={styles.updateButton}
-          onPress={handleUpdateBlog}
+          style={styles.publishButton}
+          onPress={handlePublishBlog}
           disabled={loading}
         >
-          <Text style={styles.updateButtonText}>Cập nhật bài viết</Text>
+          <Text style={styles.publishButtonText}>Đăng bài</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -352,7 +300,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   requiredField: {
-    color: "red",
+    color: 'red',
   },
   input: {
     backgroundColor: "white",
@@ -418,7 +366,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "white",
   },
-  updateButton: {
+  publishButton: {
     backgroundColor: "#6C63FF",
     borderRadius: 8,
     padding: 16,
@@ -426,7 +374,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
     marginBottom: 40,
   },
-  updateButtonText: {
+  publishButtonText: {
     color: "white",
     fontSize: 16,
     fontWeight: "bold",
@@ -449,4 +397,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default EditBlogScreen;
+export default AddBlogScreen;

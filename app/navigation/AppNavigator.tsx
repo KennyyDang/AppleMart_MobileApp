@@ -4,9 +4,8 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { NavigationContainer } from '@react-navigation/native';
 import { StyleSheet } from 'react-native';
 import { Calendar, BookmarkSimple, Gear, AppleLogo, AlignBottom, AppWindow } from 'phosphor-react-native';
-// Import màn hình
+
 import ManageScreen from '../screens/ManageScreen';
-import OrderScreen from '../screens/OrderScreen';
 import SettingScreen from '../screens/SettingScreen';
 import AccountScreen from '../screens/AccountScreen'; 
 import NotificationScreen from '@/screens/NotificationScreen';

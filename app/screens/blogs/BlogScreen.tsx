@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useNavigation,  } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
-import { fetchAllBlogs, BlogPost, fetchBlogById, likeBlog, deleteBlog } from '../services/BlogApiService';
+import { fetchAllBlogs, BlogPost, fetchBlogById, likeBlog, deleteBlog } from '../../services/BlogApiService';
 import { StackNavigationProp } from '@react-navigation/stack';
 
 type BlogStackParamList = {
@@ -40,7 +40,6 @@ const BlogScreen = () => {
 
   useEffect(() => {
     loadBlogPosts();
-    console.log("Updated BlogPosts state:", blogPosts);
     const unsubscribe = navigation.addListener('focus', loadBlogPosts);
     return () => {
       unsubscribe();

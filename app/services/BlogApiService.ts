@@ -1,8 +1,9 @@
 import axios from 'axios';
 
-const API_URL = "http://192.168.2.23:5069/api/Blog"; //Tùy máy mỗi người thay đổi IP
 
-// const API_URL = "http://192.168.1.8:5069/api/Blog"; //ethenet
+const API_URL = "http://192.168.2.23:5069/api/Blog"; 
+
+
 
 export interface BlogPost {
   productId?: number;
@@ -18,6 +19,8 @@ export interface BlogPost {
   like?: number;
   isDeleted?: boolean;
 }
+
+
 
 // Fetch all blog posts
 export const fetchAllBlogs = async (): Promise<BlogPost[]> => {
@@ -126,4 +129,7 @@ export const likeBlog = async (id: number): Promise<boolean> => {
     console.error(`Error liking blog ${id}:`, error);
     return false;
   }
-};
+}
+
+
+
