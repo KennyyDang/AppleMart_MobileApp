@@ -8,11 +8,12 @@ import { Calendar, BookmarkSimple, Gear, AppleLogo, AlignBottom, AppWindow } fro
 import ManageScreen from '../screens/ManageScreen';
 import OrderScreen from '../screens/OrderScreen';
 import SettingScreen from '../screens/SettingScreen';
+import AccountScreen from '../screens/AccountScreen'; 
+import NotificationScreen from '@/screens/NotificationScreen';
 import LoginScreen from '../screens/LoginScreen'; 
 import RegisterScreen from '../screens/RegisterScreen'; 
 import BlogScreen from '../screens/BlogScreen'; 
 import AddBlogScreen from '../screens/AddBlogScreen'; 
-
 import EditBlogScreen from '../screens/EditBlogScreen';
 import BlogDetailScreen from '../screens/BlogDetailScreen';
 import { BlogPost } from '../services/BlogApiService';
@@ -90,6 +91,8 @@ const AppNavigator = () => {
         <Stack.Screen name="Login" component={LoginScreen as React.ComponentType<any>} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Main" component={MainTabNavigator} />
+        <Stack.Screen name="Account" component={AccountScreen} />
+        <Stack.Screen name="Notification" component={NotificationScreen} />
       </Stack.Navigator>
   );
 };
