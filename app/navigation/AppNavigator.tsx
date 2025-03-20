@@ -11,11 +11,12 @@ import AccountScreen from '../screens/AccountScreen';
 import NotificationScreen from '@/screens/NotificationScreen';
 import LoginScreen from '../screens/LoginScreen'; 
 import RegisterScreen from '../screens/RegisterScreen'; 
-import BlogScreen from '../screens/BlogScreen'; 
-import AddBlogScreen from '../screens/AddBlogScreen'; 
-import EditBlogScreen from '../screens/EditBlogScreen';
-import BlogDetailScreen from '../screens/BlogDetailScreen';
+import BlogScreen from '../screens/blogs/BlogScreen';
+import AddBlogScreen from '../screens/blogs/AddBlogScreen';
+import EditBlogScreen from '../screens/blogs/EditBlogScreen';
+import BlogDetailScreen from '../screens/blogs/BlogDetailScreen';
 import { BlogPost } from '../services/BlogApiService';
+import OrderScreen from '../screens/OrderScreen';
 
 type BlogStackParamList = {
   BlogList: undefined;
