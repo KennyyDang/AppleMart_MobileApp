@@ -1,21 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+  Switch,
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
-import { User, Bell, Lock, SignOut, Gear } from 'phosphor-react-native';
+import { User, Bell, Lock, SignOut } from 'phosphor-react-native';
+import { useTheme } from '@/theme/ThemeContext';
 
 const SettingScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const loadSettings = async () => {
       const json = await AsyncStorage.getItem('currentUser');
-      if (json) {
-        setCurrentUser(JSON.parse(json));
-      }
+      if (json) setCurrentUser(JSON.parse(json));
     };
-    fetchUser();
+    loadSettings();
   }, []);
 
   const handleLogout = async () => {
@@ -29,36 +38,45 @@ const SettingScreen = () => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* Title Section */}
+    <ScrollView contentContainerStyle={[styles.container, isDark && styles.darkBackground]}>
       <View style={styles.headerBox}>
-  <Text style={styles.title}>Cài đặt</Text>
-  <Text style={styles.name}>{currentUser?.name || 'Người dùng'}</Text>
-  <Text style={styles.email}>{currentUser?.userName || 'user@example.com'}</Text>
-</View>
+        <Text style={[styles.title, isDark && styles.darkText]}>Cài đặt</Text>
+        <Text style={[styles.name, isDark && styles.darkText]}>{currentUser?.name || 'Người dùng'}</Text>
+        <Text style={[styles.email, isDark && styles.darkSubText]}>{currentUser?.userName || 'user@example.com'}</Text>
+      </View>
 
-
-      {/* Menu Section */}
-      <View style={styles.menuContainer}>
-        <MenuItem icon={<User size={22} color="#555" />} title="Tài khoản" onPress={undefined} />
-        <MenuItem icon={<Bell size={22} color="#555" />} title="Thông báo" onPress={undefined} />
-        <MenuItem icon={<Lock size={22} color="#555" />} title="Bảo mật" onPress={undefined} />
-        <MenuItem icon={<Gear size={22} color="#555" />} title="Cài đặt khác" onPress={undefined} />
+      <View style={[styles.menuContainer, isDark && styles.darkCard]}>
+        <MenuItem
+          icon={<User size={22} color={isDark ? '#ddd' : '#555'} />}
+          title="Tài khoản"
+          onPress={() => navigation.navigate('Account')}
+          dark={isDark} renderRight={undefined} />
+        <MenuItem
+          icon={<Bell size={22} color={isDark ? '#ddd' : '#555'} />}
+          title="Thông báo"
+          onPress={() => navigation.navigate('Notification')}
+          dark={isDark} renderRight={undefined} />
+        <MenuItem
+          icon={<Lock size={22} color={isDark ? '#ddd' : '#555'} />}
+          title="Dark Mode"
+          dark={isDark}
+          renderRight={<Switch value={isDark} onValueChange={toggleTheme} />} onPress={undefined} />
         <MenuItem
           icon={<SignOut size={22} color="red" />}
           title="Đăng xuất"
           color="red"
           onPress={handleLogout}
-        />
+          dark={isDark} renderRight={undefined} />
       </View>
     </ScrollView>
   );
 };
 
-const MenuItem = ({ icon, title, color = '#000', onPress }) => (
-  <TouchableOpacity style={styles.menuItem} onPress={onPress}>
+const MenuItem = ({ icon, title, color = '#000', onPress, renderRight, dark = false }) => (
+  <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={onPress ? 0.6 : 1}>
     <View style={styles.iconBox}>{icon}</View>
-    <Text style={[styles.menuText, { color }]}>{title}</Text>
+    <Text style={[styles.menuText, { color: color || (dark ? '#eee' : '#000') }]}>{title}</Text>
+    {renderRight && <View style={{ marginLeft: 'auto' }}>{renderRight}</View>}
   </TouchableOpacity>
 );
 
@@ -68,6 +86,9 @@ const styles = StyleSheet.create({
     padding: 20,
     flexGrow: 1,
   },
+  darkBackground: {
+    backgroundColor: '#1c1c1e',
+  },
   headerBox: {
     marginBottom: 25,
   },
@@ -75,19 +96,32 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: '#222',
-    fontFamily: 'System',
   },
-  subTitle: {
+  name: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 8,
+  },
+  email: {
     fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-    fontFamily: 'System',
+    color: '#888',
+    marginTop: 2,
+  },
+  darkText: {
+    color: '#eee',
+  },
+  darkSubText: {
+    color: '#aaa',
   },
   menuContainer: {
     backgroundColor: '#fff',
     borderRadius: 15,
     overflow: 'hidden',
     elevation: 2,
+  },
+  darkCard: {
+    backgroundColor: '#2c2c2e',
   },
   menuItem: {
     flexDirection: 'row',
@@ -101,26 +135,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 15,
     fontWeight: '500',
-    fontFamily: 'System',
   },
   iconBox: {
     width: 30,
     alignItems: 'center',
   },
-  name: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginTop: 8,
-    fontFamily: 'System',
-  },
-  email: {
-    fontSize: 14,
-    color: '#888',
-    marginTop: 2,
-    fontFamily: 'System',
-  },
-  
 });
 
 export default SettingScreen;

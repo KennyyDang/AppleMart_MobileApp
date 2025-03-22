@@ -5,6 +5,7 @@ import * as Notifications from 'expo-notifications';
 import { registerForPushNotificationsAsync } from './utils/notifications';
 import { Alert } from 'react-native';
 import axios from 'axios';
+import { ThemeProvider } from '@/theme/ThemeContext'; 
 
 // Configure axios for self-signed certificates (only for development)
 axios.defaults.timeout = 10000;
@@ -24,7 +25,6 @@ Notifications.setNotificationHandler({
 });
 
 const App = () => {
-  // expo
   const [expoPushToken, setExpoPushToken] = useState('');
   const notificationListener = useRef<Notifications.Subscription>();
   const responseListener = useRef<Notifications.Subscription>();
@@ -49,7 +49,6 @@ const App = () => {
     });
 
     return () => {
-      // expo
       if (notificationListener.current) {
         Notifications.removeNotificationSubscription(notificationListener.current);
       }
@@ -59,7 +58,12 @@ const App = () => {
     };
   }, []);
 
-  return <AppNavigator />;
+  // ✅ Bọc AppNavigator trong ThemeProvider
+  return (
+    <ThemeProvider>
+      <AppNavigator />
+    </ThemeProvider>
+  );
 };
 
 registerRootComponent(App);
