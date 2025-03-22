@@ -26,7 +26,7 @@ interface LoginScreenProps {
 }
 
 
-const API_URL = 'http://192.168.2.23:5069'; //API của server mỗi người khác nhau 
+const API_URL = 'http://172.20.10.2:5069'; //API của server mỗi người khác nhau 
 
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
