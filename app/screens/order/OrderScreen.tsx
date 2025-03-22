@@ -11,11 +11,32 @@ import {
   Alert,
   ScrollView
 } from 'react-native';
-import { MagnifyingGlass, Plus, Pencil, Trash, X } from 'phosphor-react-native';
+import { MagnifyingGlass, Plus, Pencil, Trash, X, CaretDown } from 'phosphor-react-native';
 import orderApiService, { Order } from '../../services/OrderApiService';
 import axios from 'axios';
+import { RouteProp, useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 
-const OrderScreen = ({ navigation }) => {
+type OrderStackParamList = {
+  OrderList: undefined;
+  OrderDetail: { orderId: number };
+};
+
+type OrderNavigationProp = StackNavigationProp<OrderStackParamList, 'OrderList'>;
+
+const ORDER_STATUS_OPTIONS = [
+  'Pending',
+  'Processing',
+  'Shipped',
+  'Delivered',
+  'Completed',
+  'RefundRequested',
+  'Refunded',
+  'Cancelled'
+];
+
+const OrderScreen = () => {
+  const navigation = useNavigation<OrderNavigationProp>();
   const [searchQuery, setSearchQuery] = useState('');
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
@@ -23,6 +44,7 @@ const OrderScreen = ({ navigation }) => {
   const [error, setError] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [statusPickerVisible, setStatusPickerVisible] = useState(false);
   const [orderFormData, setOrderFormData] = useState<Partial<Order>>({
     userID: '',
     shipperID: '',
@@ -35,12 +57,10 @@ const OrderScreen = ({ navigation }) => {
     isDeleted: false
   });
 
-  // Fetch orders when component mounts
   useEffect(() => {
     fetchOrders();
   }, []);
 
-  // Update filtered orders when search query changes
   useEffect(() => {
     filterOrders();
   }, [searchQuery, orders]);
@@ -74,23 +94,23 @@ const OrderScreen = ({ navigation }) => {
   };
 
   const handleViewOrderDetails = async (orderId: number) => {
-    try {
-      const order = await orderApiService.getOrderById(orderId);
-      setSelectedOrder(order);
-      Alert.alert('Order Details', JSON.stringify(order, null, 2));
-    } catch (err) {
-      Alert.alert('Error', 'Failed to fetch order details');
-    }
+    navigation.navigate('OrderDetail', { orderId });
   };
 
   const handleCreateOrder = async () => {
     try {
       setIsLoading(true);
       
-      // Log dữ liệu để kiểm tra
-      console.log('Order data being sent:', JSON.stringify(orderFormData));
+      // Set orderStatus to Pending for new orders
+      const orderData = {
+        ...orderFormData,
+        orderStatus: 'Pending' // Always set to Pending for new orders
+      };
       
-      await orderApiService.createOrder(orderFormData as Omit<Order, 'orderID'>);
+      // Log data for debugging
+      console.log('Order data being sent:', JSON.stringify(orderData));
+      
+      await orderApiService.createOrder(orderData as Omit<Order, 'orderID'>);
       setModalVisible(false);
       resetForm();
       fetchOrders();
@@ -113,10 +133,13 @@ const OrderScreen = ({ navigation }) => {
     
     try {
       setIsLoading(true);
-      // Only send the status if using the status endpoint
+      
+      // Only send the status and shipperID for updating
       await orderApiService.updateOrder(selectedOrder.orderID, { 
-        orderStatus: orderFormData.orderStatus 
+        orderStatus: orderFormData.orderStatus,
+        shipperID: orderFormData.shipperID
       });
+      
       setModalVisible(false);
       resetForm();
       fetchOrders();
@@ -128,34 +151,6 @@ const OrderScreen = ({ navigation }) => {
     }
   };
 
-  const handleDeleteOrder = async (orderId: number) => {
-    Alert.alert(
-      'Confirm Delete',
-      'Are you sure you want to delete this order?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel'
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setIsLoading(true);
-              await orderApiService.deleteOrder(orderId);
-              fetchOrders();
-              Alert.alert('Success', 'Order deleted successfully');
-            } catch (err) {
-              Alert.alert('Error', 'Failed to delete order');
-            } finally {
-              setIsLoading(false);
-            }
-          }
-        }
-      ]
-    );
-  };
 
   const openCreateModal = () => {
     setSelectedOrder(null);
@@ -166,16 +161,8 @@ const OrderScreen = ({ navigation }) => {
   const openEditModal = (order: Order) => {
     setSelectedOrder(order);
     setOrderFormData({
-      userID: order.userID,
       shipperID: order.shipperID,
-      orderDate: order.orderDate,
-      address: order.address,
-      paymentMethod: order.paymentMethod,
-      shippingMethodID: order.shippingMethodID,
-      total: order.total,
-      orderStatus: order.orderStatus,
-      voucherID: order.voucherID,
-      isDeleted: order.isDeleted
+      orderStatus: order.orderStatus
     });
     setModalVisible(true);
   };
@@ -199,6 +186,11 @@ const OrderScreen = ({ navigation }) => {
       ...prev,
       [key]: value
     }));
+  };
+
+  const selectStatus = (status: string) => {
+    handleInputChange('orderStatus', status);
+    setStatusPickerVisible(false);
   };
 
   const formatDate = (dateString: string) => {
@@ -250,6 +242,10 @@ const OrderScreen = ({ navigation }) => {
                   item.orderStatus === 'Completed' ? styles.statusCompleted :
                   item.orderStatus === 'Pending' ? styles.statusPending :
                   item.orderStatus === 'Cancelled' ? styles.statusCancelled :
+                  item.orderStatus === 'Shipped' ? styles.statusShipped :
+                  item.orderStatus === 'Delivered' ? styles.statusDelivered :
+                  item.orderStatus === 'RefundRequested' ? styles.statusRefundRequested :
+                  item.orderStatus === 'Refunded' ? styles.statusRefunded :
                   styles.statusProcessing
                 ]}>
                   <Text style={styles.statusText}>{item.orderStatus}</Text>
@@ -264,13 +260,6 @@ const OrderScreen = ({ navigation }) => {
                 >
                   <Pencil size={16} color="#FFF" />
                   <Text style={styles.actionButtonText}>Edit</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.actionButton, styles.deleteButton]}
-                  onPress={() => handleDeleteOrder(item.orderID)}
-                >
-                  <Trash size={16} color="#FFF" />
-                  <Text style={styles.actionButtonText}>Delete</Text>
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
@@ -305,75 +294,115 @@ const OrderScreen = ({ navigation }) => {
             </View>
 
             <ScrollView style={styles.formContainer}>
-              <Text style={styles.label}>User ID</Text>
-              <TextInput
-                style={styles.input}
-                value={orderFormData.userID}
-                onChangeText={(text) => handleInputChange('userID', text)}
-              />
+              {/* Show full form for create, limited form for edit */}
+              {!selectedOrder ? (
+                // Create Order Form - All fields
+                <>
+                  <Text style={styles.label}>User ID</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={orderFormData.userID}
+                    onChangeText={(text) => handleInputChange('userID', text)}
+                  />
 
-              <Text style={styles.label}>Shipper ID</Text>
-              <TextInput
-                style={styles.input}
-                value={orderFormData.shipperID}
-                onChangeText={(text) => handleInputChange('shipperID', text)}
-              />
+                  <Text style={styles.label}>Shipper ID</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={orderFormData.shipperID}
+                    onChangeText={(text) => handleInputChange('shipperID', text)}
+                  />
 
-              <Text style={styles.label}>Order Date</Text>
-              <TextInput
-                style={styles.input}
-                value={orderFormData.orderDate?.toString()}
-                onChangeText={(text) => handleInputChange('orderDate', text)}
-              />
+                  <Text style={styles.label}>Order Date</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={orderFormData.orderDate?.toString()}
+                    onChangeText={(text) => handleInputChange('orderDate', text)}
+                  />
 
-              <Text style={styles.label}>Address</Text>
-              <TextInput
-                style={styles.input}
-                value={orderFormData.address}
-                onChangeText={(text) => handleInputChange('address', text)}
-                multiline
-              />
+                  <Text style={styles.label}>Address</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={orderFormData.address}
+                    onChangeText={(text) => handleInputChange('address', text)}
+                    multiline
+                  />
 
-              <Text style={styles.label}>Payment Method</Text>
-              <TextInput
-                style={styles.input}
-                value={orderFormData.paymentMethod}
-                onChangeText={(text) => handleInputChange('paymentMethod', text)}
-              />
+                  <Text style={styles.label}>Payment Method</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={orderFormData.paymentMethod}
+                    onChangeText={(text) => handleInputChange('paymentMethod', text)}
+                  />
 
-              <Text style={styles.label}>Shipping Method ID</Text>
-              <TextInput
-                style={styles.input}
-                keyboardType="numeric"
-                value={orderFormData.shippingMethodID?.toString()}
-                onChangeText={(text) => handleInputChange('shippingMethodID', parseInt(text) || 0)}
-              />
+                  <Text style={styles.label}>Shipping Method ID</Text>
+                  <TextInput
+                    style={styles.input}
+                    keyboardType="numeric"
+                    value={orderFormData.shippingMethodID?.toString()}
+                    onChangeText={(text) => handleInputChange('shippingMethodID', parseInt(text) || 0)}
+                  />
 
-              <Text style={styles.label}>Total</Text>
-              <TextInput
-                style={styles.input}
-                keyboardType="numeric"
-                value={orderFormData.total?.toString()}
-                onChangeText={(text) => handleInputChange('total', parseFloat(text) || 0)}
-              />
+                  <Text style={styles.label}>Total</Text>
+                  <TextInput
+                    style={styles.input}
+                    keyboardType="numeric"
+                    value={orderFormData.total?.toString()}
+                    onChangeText={(text) => handleInputChange('total', parseFloat(text) || 0)}
+                  />
 
-              <Text style={styles.label}>Order Status</Text>
-              <TextInput
-                style={styles.input}
-                value={orderFormData.orderStatus}
-                onChangeText={(text) => handleInputChange('orderStatus', text)}
-              />
+                  <Text style={styles.label}>Voucher ID (Optional)</Text>
+                  <TextInput
+                    style={styles.input}
+                    keyboardType="numeric"
+                    value={orderFormData.voucherID?.toString()}
+                    onChangeText={(text) => {
+                      const value = text.trim() === '' ? undefined : parseInt(text);
+                      handleInputChange('voucherID', value);
+                    }}
+                  />
+                </>
+              ) : (
+                // Edit Order Form - Only shipper ID and status
+                <>
+                  <Text style={styles.label}>Shipper ID</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={orderFormData.shipperID}
+                    onChangeText={(text) => handleInputChange('shipperID', text)}
+                  />
 
-              <Text style={styles.label}>Voucher ID (Optional)</Text>
-              <TextInput
-                style={styles.input}
-                keyboardType="numeric"
-                value={orderFormData.voucherID?.toString()}
-                onChangeText={(text) => {
-                  const value = text.trim() === '' ? undefined : parseInt(text);
-                  handleInputChange('voucherID', value);
-                }}
-              />
+                  <Text style={styles.label}>Order Status</Text>
+                  <TouchableOpacity 
+                    style={styles.statusPickerButton}
+                    onPress={() => setStatusPickerVisible(!statusPickerVisible)}
+                  >
+                    <Text style={styles.statusPickerButtonText}>
+                      {orderFormData.orderStatus || 'Select status'}
+                    </Text>
+                    <CaretDown size={16} color="#333" />
+                  </TouchableOpacity>
+                  
+                  {/* Status Picker */}
+                  {statusPickerVisible && (
+                    <View style={styles.statusPickerContainer}>
+                      {ORDER_STATUS_OPTIONS.map((status) => (
+                        <TouchableOpacity
+                          key={status}
+                          style={styles.statusPickerItem}
+                          onPress={() => selectStatus(status)}
+                        >
+                          <Text style={[
+                            styles.statusPickerItemText,
+                            orderFormData.orderStatus === status && styles.statusPickerItemSelected
+                          ]}>
+                            {status}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </>
+              )}
 
               <View style={styles.formButtonContainer}>
                 <TouchableOpacity
@@ -507,16 +536,28 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   statusCompleted: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#4CAF50', // Green
   },
   statusPending: {
-    backgroundColor: '#FFC107',
+    backgroundColor: '#FFC107', // Yellow
   },
   statusCancelled: {
-    backgroundColor: '#E53935',
+    backgroundColor: '#E53935', // Red
   },
   statusProcessing: {
-    backgroundColor: '#1E88E5',
+    backgroundColor: '#1E88E5', // Blue
+  },
+  statusShipped: {
+    backgroundColor: '#9C27B0', // Purple
+  },
+  statusDelivered: {
+    backgroundColor: '#00BCD4', // Cyan
+  },
+  statusRefundRequested: {
+    backgroundColor: '#FF9800', // Orange
+  },
+  statusRefunded: {
+    backgroundColor: '#795548', // Brown
   },
   statusText: {
     color: '#FFF',
@@ -547,9 +588,6 @@ const styles = StyleSheet.create({
   },
   editButton: {
     backgroundColor: '#1E88E5',
-  },
-  deleteButton: {
-    backgroundColor: '#E53935',
   },
   actionButtonText: {
     color: '#FFF',
@@ -615,6 +653,42 @@ const styles = StyleSheet.create({
   formButtonText: {
     color: '#FFF',
     fontWeight: 'bold',
+  },
+  // Status picker styles
+  statusPickerButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 5,
+    padding: 10,
+    backgroundColor: '#FFF',
+  },
+  statusPickerButtonText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  statusPickerContainer: {
+    marginTop: 5,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 5,
+    backgroundColor: '#FFF',
+    maxHeight: 200,
+  },
+  statusPickerItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  statusPickerItemText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  statusPickerItemSelected: {
+    fontWeight: 'bold',
+    color: '#1E88E5',
   },
 });
 

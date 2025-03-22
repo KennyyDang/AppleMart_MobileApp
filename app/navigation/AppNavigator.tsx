@@ -9,8 +9,11 @@ import ManageScreen from '../screens/ManageScreen';
 import SettingScreen from '../screens/SettingScreen';
 
 import LoginScreen from '../screens/LoginScreen'; 
+import RegisterScreen from '../screens/RegisterScreen'; 
+
 
 import OrderScreen from '../screens/order/OrderScreen';
+import OrderDetailScreen from '../screens/order/OrderDetailScreen';
 
 import BlogScreen from '../screens/blogs/BlogScreen'; 
 import AddBlogScreen from '../screens/blogs/AddBlogScreen'; 
@@ -26,12 +29,25 @@ type BlogStackParamList = {
   BlogDetail: { blogId: number };
 };
 
+type OrderStackParamList = {
+  OrderList: undefined;
+  OrderDetail: { orderId: number };
+};
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 const BlogStack = createStackNavigator<BlogStackParamList>();
+const OrderStack = createStackNavigator<OrderStackParamList>();
 
-// Tạo Stack Navigator cho phần Blog
+const OrderStackNavigator = () => {
+  return (
+    <OrderStack.Navigator screenOptions={{ headerShown: false }}>
+      <OrderStack.Screen name="OrderList" component={OrderScreen} />
+      <OrderStack.Screen name="OrderDetail" component={OrderDetailScreen} />
+    </OrderStack.Navigator>
+  );
+};
+
 const BlogStackNavigator = () => {
   return (
     <BlogStack.Navigator screenOptions={{ headerShown: false }}>
@@ -63,7 +79,7 @@ const MainTabNavigator = () => {
       />
       <Tab.Screen
         name="Order"
-        component={OrderScreen}
+        component={OrderStackNavigator}
         options={{
           tabBarIcon: ({ color }) => <BookmarkSimple size={24} color={color} />, 
         }}

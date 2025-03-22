@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Define the API base URL - replace with your actual API base URL
-const API_BASE_URL = 'http://192.168.1.178:5069/api/Order';
+const API_BASE_URL = 'http://192.168.1.82:5069/api/Order';
 
 // Define TypeScript interfaces based on the SQL tables
 export interface OrderDetail {
@@ -38,7 +38,7 @@ apiClient.interceptors.request.use(
     try {
       const token = await AsyncStorage.getItem('accessToken');
       if (token) {
-        // Thêm token vào header
+        // Add token to header
         config.headers.Authorization = `Bearer ${token}`;
       } else {
         console.log('No authentication token found');
@@ -83,15 +83,27 @@ class OrderApiService {
     }
   }
 
-  // Get a specific order with details
   async updateOrder(id: number, order: Partial<Order>): Promise<Order> {
     try {
       console.log(`Updating order ${id} with data:`, JSON.stringify(order, null, 2));
+  
+      // Prepare the update data in the format expected by the backend
+      const updateData: any = {};
       
-      // Convert orderStatus to newStatus as expected by the API
-      const requestData = { newStatus: order.orderStatus };
+      if (order.orderStatus) {
+        updateData.newStatus = order.orderStatus;
+      }
       
-      const response = await apiClient.put(`/${id}/status`, requestData);
+      if (order.shipperID) {
+        updateData.shipperID = order.shipperID;
+      }
+      
+      // Only proceed if we have data to update
+      if (Object.keys(updateData).length === 0) {
+        throw new Error('No valid update data provided.');
+      }
+      
+      const response = await apiClient.put(`/${id}/status`, updateData);
       return response.data;
     } catch (error) {
       console.error(`Error updating order ${id}:`, error);
@@ -102,8 +114,7 @@ class OrderApiService {
     }
   }
   
-  
-  // Similarly update other methods
+  // Other methods remain the same
   async getOrderById(id: number): Promise<Order> {
     try {
       const response = await apiClient.get(`/${id}`);
@@ -126,12 +137,11 @@ class OrderApiService {
   
   async deleteOrder(id: number): Promise<void> {
     try {
-      await apiClient.delete(`/${id}`);  // Change to match other methods
+      await apiClient.delete(`/${id}`);
     } catch (error) {
       console.error(`Error deleting order ${id}:`, error);
       throw error;
     }
   }
 }
-
 export default new OrderApiService();
