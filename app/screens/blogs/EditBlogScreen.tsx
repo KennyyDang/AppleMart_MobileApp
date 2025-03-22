@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { Feather } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { BlogPost, updateBlog } from "../../services/BlogApiService";
 import { StackNavigationProp } from "@react-navigation/stack";
+import { useTabBar } from "@/navigation/TabBarContext";
 
 type BlogStackParamList = {
   BlogList: undefined;
@@ -32,6 +33,9 @@ type RootStackParamList = {
 type EditBlogRouteProp = RouteProp<RootStackParamList, "EditBlog">;
 
 const EditBlogScreen = () => {
+  const { handleScroll } = useTabBar();
+
+
   const navigation = useNavigation<BlogNavigationProp>();
   const route = useRoute<EditBlogRouteProp>();
   const blog = route.params?.blog;
@@ -186,7 +190,11 @@ const EditBlogScreen = () => {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      onScroll={handleScroll}
+      scrollEventThrottle={16}
+      nestedScrollEnabled={true}
+    >
       {loading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#6C63FF" />
@@ -209,7 +217,7 @@ const EditBlogScreen = () => {
         <TextInput
           style={[styles.input, productIdError ? styles.inputErrorStyle : null]}
           placeholder="Nhập ID sản phẩm"
-          value={productId} 
+          value={productId}
           onChangeText={(text) => {
             const numericValue = text.replace(/[^0-9]/g, "");
             setProductId(numericValue);

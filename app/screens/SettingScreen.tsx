@@ -82,7 +82,7 @@ const MenuItem = ({ icon, title, color = '#000', onPress, renderRight, dark = fa
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#f4f6f8',
+    backgroundColor: 'white',
     padding: 20,
     flexGrow: 1,
   },

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   View,
   Text,
@@ -13,8 +13,9 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { BlogPost, createBlog } from '../../services/BlogApiService';
+import { BlogPost, createBlog } from "../../services/BlogApiService";
 import { StackNavigationProp } from "@react-navigation/stack";
+import { useTabBar } from "@/navigation/TabBarContext";
 
 type BlogStackParamList = {
   BlogList: undefined;
@@ -34,7 +35,8 @@ const AddBlogScreen = () => {
   const [loading, setLoading] = useState(false);
   const [productIdError, setProductIdError] = useState<string | null>(null);
 
-  // Chọn ảnh từ thư viện
+  const { handleScroll } = useTabBar();
+
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
@@ -75,43 +77,45 @@ const AddBlogScreen = () => {
       Alert.alert("Thông báo", "Vui lòng nhập tiêu đề bài viết");
       return;
     }
-  
+
     if (!content.trim()) {
       Alert.alert("Thông báo", "Vui lòng nhập nội dung bài viết");
       return;
     }
-    
+
     if (!productId || !validateProductId(productId)) {
-      Alert.alert("Thông báo", productIdError || "Vui lòng nhập ID sản phẩm hợp lệ");
+      Alert.alert(
+        "Thông báo",
+        productIdError || "Vui lòng nhập ID sản phẩm hợp lệ"
+      );
       return;
     }
-  
+
     setLoading(true);
-  
+
     try {
       // Tạo FormData nếu có ảnh
       let imageUrl = "";
       if (image) {
         imageUrl = "https://placeholder-url-for-image.com/image123.jpg";
       }
-  
+
       // Đảm bảo đúng định dạng mà API mong đợi
       const blogData = {
         Title: title.trim(),
         Content: content.trim(),
-        Author: "Unknown", // Đảm bảo có giá trị
-        // Use ProductId instead of ProductID - case matters!
+        Author: "Unknown",
         ProductId: parseInt(productId), // Parse để đảm bảo là số
         Category: category,
         ImageUrl: imageUrl,
-        UploadDate: new Date().toISOString()
+        UploadDate: new Date().toISOString(),
       };
-  
+
       console.log("Sending blog data:", blogData);
-  
+
       // Gọi API để tạo bài viết mới
       const result = await createBlog(blogData);
-  
+
       if (result) {
         Alert.alert("Thành công", "Bài viết đã được đăng thành công", [
           { text: "OK", onPress: () => navigation.navigate("BlogList") },
@@ -122,14 +126,14 @@ const AddBlogScreen = () => {
     } catch (error: any) {
       console.error("Error publishing blog:", error.response?.data || error);
       let errorMessage = "Đã xảy ra lỗi khi đăng bài viết";
-      
+
       // Extract more specific error message if available
       if (error.message) {
         errorMessage = error.message;
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       }
-      
+
       Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
@@ -141,7 +145,11 @@ const AddBlogScreen = () => {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      onScroll={handleScroll}
+      scrollEventThrottle={16}
+      nestedScrollEnabled={true}
+    >
       {loading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#6C63FF" />
@@ -158,7 +166,9 @@ const AddBlogScreen = () => {
       </View>
 
       <View style={styles.formContainer}>
-        <Text style={styles.label}>ID Sản phẩm <Text style={styles.requiredField}>*</Text></Text>
+        <Text style={styles.label}>
+          ID Sản phẩm <Text style={styles.requiredField}>*</Text>
+        </Text>
         <TextInput
           style={[styles.input, productIdError ? styles.inputErrorStyle : null]}
           placeholder="Nhập ID sản phẩm"
@@ -171,9 +181,13 @@ const AddBlogScreen = () => {
           }}
           keyboardType="numeric"
         />
-        {productIdError && <Text style={styles.errorText}>{productIdError}</Text>}
-        
-        <Text style={styles.label}>Tiêu đề <Text style={styles.requiredField}>*</Text></Text>
+        {productIdError && (
+          <Text style={styles.errorText}>{productIdError}</Text>
+        )}
+
+        <Text style={styles.label}>
+          Tiêu đề <Text style={styles.requiredField}>*</Text>
+        </Text>
         <TextInput
           style={styles.input}
           placeholder="Nhập tiêu đề bài viết"
@@ -193,7 +207,9 @@ const AddBlogScreen = () => {
           )}
         </TouchableOpacity>
 
-        <Text style={styles.label}>Nội dung <Text style={styles.requiredField}>*</Text></Text>
+        <Text style={styles.label}>
+          Nội dung <Text style={styles.requiredField}>*</Text>
+        </Text>
         <TextInput
           style={[styles.input, styles.contentInput]}
           placeholder="Viết nội dung bài viết của bạn tại đây..."
@@ -300,7 +316,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   requiredField: {
-    color: 'red',
+    color: "red",
   },
   input: {
     backgroundColor: "white",
