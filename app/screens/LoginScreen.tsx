@@ -26,7 +26,7 @@ interface LoginScreenProps {
 }
 
 
-const API_URL = 'http://172.20.10.2:5069'; //API của server mỗi người khác nhau 
+const API_URL = 'http://192.168.1.12:5069'; //API của server mỗi người khác nhau 
 
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
@@ -52,7 +52,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           name
         };
       
-        await AsyncStorage.multiSet([
+        await AsyncStorage.multiSet([ 
           ['accessToken', accessToken],
           ['refreshToken', refreshToken],
           ['currentUser', JSON.stringify(currentUser)] // 👈 Lưu user object

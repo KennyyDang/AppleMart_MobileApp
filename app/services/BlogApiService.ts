@@ -1,8 +1,7 @@
 import axios from 'axios';
 
 
-// const API_URL = "http://192.168.1.12:5069/api/Blog";
-const API_URL = "http://172.20.10.2:5069/api/Blog";
+const API_URL = "http://192.168.1.12:5069/api/Blog";
 
 
 
@@ -22,8 +21,6 @@ export interface BlogPost {
 }
 
 
-
-// Fetch all blog posts
 export const fetchAllBlogs = async (): Promise<BlogPost[]> => {
   try {
     const response = await axios.get(API_URL);
@@ -37,7 +34,6 @@ export const fetchAllBlogs = async (): Promise<BlogPost[]> => {
   }
 };
 
-// Fetch single blog post by ID
 export const fetchBlogById = async (id: number): Promise<BlogPost | null> => {
   try {
     const response = await axios.get(`${API_URL}/${id}`);
@@ -48,7 +44,6 @@ export const fetchBlogById = async (id: number): Promise<BlogPost | null> => {
   }
 };
 
-// Create a new blog post
 export const createBlog = async (blogPost: any) => {
   try {
     const formData = new FormData();
@@ -99,7 +94,6 @@ export const createBlog = async (blogPost: any) => {
   }
 };
 
-// Update an existing blog post
 export const updateBlog = async (blog: BlogPost): Promise<boolean> => {
   try {
     const response = await axios.put(`${API_URL}/${blog.blogID}`, blog);
@@ -110,7 +104,6 @@ export const updateBlog = async (blog: BlogPost): Promise<boolean> => {
   }
 };
 
-// Delete a blog post
 export const deleteBlog = async (id: number): Promise<boolean> => {
   try {
     const response = await axios.delete(`${API_URL}/${id}`);
@@ -121,7 +114,6 @@ export const deleteBlog = async (id: number): Promise<boolean> => {
   }
 };
 
-// Like a blog post
 export const likeBlog = async (id: number): Promise<boolean> => {
   try {
     const response = await axios.post(`${API_URL}/${id}`);

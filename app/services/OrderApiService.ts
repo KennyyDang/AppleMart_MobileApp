@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Define the API base URL - replace with your actual API base URL
 
-const API_BASE_URL = 'http://172.20.10.2:5069/api/Order';
+const API_BASE_URL = 'http://192.168.1.12:5069/api/Order';
 
 // Define TypeScript interfaces based on the SQL tables
 export interface OrderDetail {
