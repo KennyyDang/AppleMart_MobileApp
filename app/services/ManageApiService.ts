@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://192.168.1.12:5069/api/Admin'; // Replace with your actual API base URL
+const BASE_URL = 'http://192.168.1.11:5069/api/Admin'; // Replace with your actual API base URL
 
 class ManageApiService {
   // Get total users
@@ -20,7 +20,25 @@ class ManageApiService {
 
   // Get top selling products
   static getTopSellingProducts() {
-    return axios.get(`${BASE_URL}/get-top-selling-product-items`);
+    return axios.get(`${BASE_URL}/get-top-selling-product-items`)
+      .then(response => {
+        return response;
+      })
+      .catch(error => {
+        console.error('Error fetching top products:', error);
+        throw error;
+      });
+  }
+
+  static getTopCustomers() {
+    return axios.get(`${BASE_URL}/get-top-costumers`)  // Corrected endpoint
+      .then(response => {
+        return response;
+      })
+      .catch(error => {
+        console.error('Error fetching top customers:', error);
+        throw error;
+      });
   }
 }
 
