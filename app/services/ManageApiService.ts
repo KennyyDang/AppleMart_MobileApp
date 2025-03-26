@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://192.168.1.11:5069/api/Admin'; // Replace with your actual API base URL
+const BASE_URL = 'http://192.168.1.106:5069/api/Admin'; // Replace with your actual API base URL
 
 class ManageApiService {
   // Get total users
