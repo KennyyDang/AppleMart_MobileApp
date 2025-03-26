@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 
-const API_URL = "http://192.168.1.11:5069/api/Blog";
+const API_URL = "http://192.168.2.15:5069/api/Blog";
 
 
 
