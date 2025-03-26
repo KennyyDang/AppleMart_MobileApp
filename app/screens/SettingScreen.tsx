@@ -57,11 +57,6 @@ const SettingScreen = () => {
           onPress={() => navigation.navigate('Notification')}
           dark={isDark} renderRight={undefined} />
         <MenuItem
-          icon={<Lock size={22} color={isDark ? '#ddd' : '#555'} />}
-          title="Dark Mode"
-          dark={isDark}
-          renderRight={<Switch value={isDark} onValueChange={toggleTheme} />} onPress={undefined} />
-        <MenuItem
           icon={<SignOut size={22} color="red" />}
           title="Đăng xuất"
           color="red"

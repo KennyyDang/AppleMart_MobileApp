@@ -1,8 +1,7 @@
 import axios from 'axios';
 
-//172.20.10.2
-// const API_URL = "http://192.168.1.11:5069/api/Blog";
 const API_URL = "http://192.168.1.106:5069/api/Blog";
+
 
 
 
