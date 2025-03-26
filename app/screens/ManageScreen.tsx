@@ -107,7 +107,6 @@ const ManageScreen = () => {
     }
   };
 
-  // Helper function to extract numeric values from complex objects
   const extractNumberValue = (data: any): number => {
     if (data === null || data === undefined) {
       return 0;
@@ -189,7 +188,7 @@ const ManageScreen = () => {
       legendFontSize: 15,
     },
     {
-      name: "Revenue ($)",
+      name: "Revenue",
       population: totalRevenue,
       color: "#36A2EB",
       legendFontColor: "#7F7F7F",

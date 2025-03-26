@@ -1,11 +1,10 @@
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Alert } from "react-native";
 
-// Define the API base URL - replace with your actual API base URL
+const API_BASE_URL = "http://192.168.1.106:5069/api";
 
-const API_BASE_URL = 'http://192.168.2.15:5069/api/Order';
 
-// Define TypeScript interfaces based on the SQL tables
 export interface OrderDetail {
   orderDetailID: number;
   productItemID: number;
@@ -30,6 +29,13 @@ export interface Order {
   orderDetails?: OrderDetail[];
 }
 
+export interface Shipper {
+  shipperID: string;
+  name: string;
+  phoneNumber: string;
+  email?: string;
+}
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
 });
@@ -37,112 +43,120 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   async (config) => {
     try {
-      const token = await AsyncStorage.getItem('accessToken');
+      const token = await AsyncStorage.getItem("accessToken");
       if (token) {
-        // Add token to header
         config.headers.Authorization = `Bearer ${token}`;
       } else {
-        console.log('No authentication token found');
+        console.log("No authentication token found");
       }
       return config;
     } catch (error) {
-      console.error('Error setting auth token:', error);
+      console.error("Error setting auth token:", error);
       return config;
     }
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 class OrderApiService {
-
   async getOrders(): Promise<Order[]> {
     try {
-      const response = await apiClient.get('/orders');
-      if (response.data && response.data.orders && response.data.orders.$values) {
-        return response.data.orders.$values;
-      }
-      if (response.data && Array.isArray(response.data.orders)) {
-        return response.data.orders;
-      }
-      
-      if (Array.isArray(response.data)) {
-        return response.data;
+      const response = await apiClient.get("/Order/orders");
+
+      let orders: Order[] = [];
+
+      // Extremely comprehensive order extraction
+      if (response.data) {
+        if (response.data.orders?.$values) {
+          orders = response.data.orders.$values;
+        } else if (Array.isArray(response.data.orders)) {
+          orders = response.data.orders;
+        } else if (Array.isArray(response.data)) {
+          orders = response.data;
+        } else {
+          console.error("Unexpected response structure:", response.data);
+          return [];
+        }
       }
 
-      console.error('Could not find orders in response:', response.data);
-      return [];
+      // Extreme validation and transformation
+      const validOrders = orders
+        .map((order) => ({
+          orderID: order?.orderID ?? -1,
+          userID: order?.userID ?? "",
+          shipperID: order?.shipperID ?? "",
+          orderDate: order?.orderDate ?? "",
+          address: order?.address ?? "",
+          paymentMethod: order?.paymentMethod ?? "",
+          shippingMethodID: order?.shippingMethodID ?? -1,
+          total: order?.total ?? 0,
+          orderStatus: order?.orderStatus ?? "Unknown",
+          isDeleted: order?.isDeleted ?? false,
+        }))
+        .filter(
+          (order) => order.orderID !== -1 && order.orderStatus !== "Unknown"
+        );
+      return validOrders;
     } catch (error) {
-      console.error('Error fetching orders:', error);
-      
+      console.error("Comprehensive error in getOrders:", error);
+
       if (axios.isAxiosError(error)) {
-        console.error('Status:', error.response?.status);
-        console.error('Message:', error.response?.data);
+        console.error("Detailed Axios Error:", {
+          status: error.response?.status,
+          data: JSON.stringify(error.response?.data),
+          headers: error.response?.headers,
+          message: error.message,
+        });
       }
-      throw error;
+
+      return []; // Return empty array instead of throwing
     }
   }
 
-  async updateOrder(id: number, order: Partial<Order>): Promise<Order> {
-    try {
-      console.log(`Updating order ${id} with data:`, JSON.stringify(order, null, 2));
-  
-      // Prepare the update data in the format expected by the backend
-      const updateData: any = {};
-      
-      if (order.orderStatus) {
-        updateData.newStatus = order.orderStatus;
-      }
-      
-      if (order.shipperID) {
-        updateData.shipperID = order.shipperID;
-      }
-      
-      // Only proceed if we have data to update
-      if (Object.keys(updateData).length === 0) {
-        throw new Error('No valid update data provided.');
-      }
-      
-      const response = await apiClient.put(`/${id}/status`, updateData);
-      return response.data;
-    } catch (error) {
-      console.error(`Error updating order ${id}:`, error);
-      if (axios.isAxiosError(error)) {
-        console.error('Response data:', error.response?.data);
-      }
-      throw error;
-    }
-  }
-  
-  // Other methods remain the same
   async getOrderById(id: number): Promise<Order> {
     try {
-      const response = await apiClient.get(`/${id}`);
+      const response = await apiClient.get(`/Order/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching order ${id}:`, error);
       throw error;
     }
   }
-  
-  async createOrder(order: Omit<Order, 'orderID'>): Promise<Order> {
+
+  async updateOrderStatus(
+    orderId: number,
+    newStatus: string,
+    shipperId?: string
+  ): Promise<Order> {
     try {
-      const response = await apiClient.post('', order);
+      // Construct the URL based on the status and shipper ID
+      let url = `/Admin/${orderId}/status?NewStatus=${newStatus}`;
+
+      // Add shipper ID for Shipped status
+      if (newStatus === "Shipped" && shipperId) {
+        url += `&ShipperId=${shipperId}`;
+      }
+
+      const response = await apiClient.put(url);
+
       return response.data;
     } catch (error) {
-      console.error('Error creating order:', error);
-      throw error;
-    }
-  }
-  
-  async deleteOrder(id: number): Promise<void> {
-    try {
-      await apiClient.delete(`/${id}`);
-    } catch (error) {
-      console.error(`Error deleting order ${id}:`, error);
+      console.error(`Error updating order ${orderId} status:`, error);
+
+      if (axios.isAxiosError(error)) {
+        const errorMessage =
+          error.response?.data?.message ||
+          error.response?.data?.errors?.NewStatus?.[0] ||
+          error.message ||
+          "Failed to update order status";
+
+        Alert.alert("Status Update Error", errorMessage);
+        throw new Error(errorMessage);
+      }
+
       throw error;
     }
   }
 }
+
 export default new OrderApiService();

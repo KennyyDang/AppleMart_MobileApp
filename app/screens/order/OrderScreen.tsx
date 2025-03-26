@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Modal,
   Alert,
+  ScrollView,
 } from "react-native";
 import {
   MagnifyingGlass,
@@ -34,14 +35,21 @@ type OrderNavigationProp = StackNavigationProp<
   "OrderList"
 >;
 
-const ORDER_STATUS_OPTIONS = [
+const ORDER_STATUS_TRANSITIONS = {
+  Pending: ["Processing"],
+  Processing: ["Shipped"],
+  Delivered: ["Completed"],
+  RefundRequested: ["Refunded"],
+};
+
+const ORDER_STATUSES = [
   "Pending",
   "Processing",
   "Shipped",
   "Delivered",
   "Completed",
-  "RefundRequested",
   "Refunded",
+  "RefundRequested",
   "Cancelled",
 ];
 
@@ -53,19 +61,25 @@ const OrderScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [statusPickerVisible, setStatusPickerVisible] = useState(false);
-  const [orderFormData, setOrderFormData] = useState<Partial<Order>>({
-    userID: "",
-    shipperID: "",
-    orderDate: new Date().toISOString().split("T")[0],
-    address: "",
-    paymentMethod: "",
-    shippingMethodID: 0,
-    total: 0,
-    orderStatus: "Pending",
-    isDeleted: false,
-  });
+  const [statusModalVisible, setStatusModalVisible] = useState(false);
+  const [shipperID, setShipperID] = useState("");
+  const [nextPossibleStatus, setNextPossibleStatus] = useState<string[]>([]);
+  const [selectedNewStatus, setSelectedNewStatus] = useState<string | null>(
+    null
+  );
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+
+  const ORDER_STATUSES = [
+    "Pending",
+    "Processing",
+    "Shipped",
+    "Delivered",
+    "Completed",
+    "Refunded",
+    "RefundRequested",
+    "Cancelled",
+  ];
 
   const { handleScroll } = useTabBar();
 
@@ -77,19 +91,67 @@ const OrderScreen = () => {
     filterOrders();
   }, [searchQuery, orders]);
 
+  useEffect(() => {
+    if (selectedOrder) {
+      const currentStatus = selectedOrder.orderStatus;
+      const possibleStatuses =
+        ORDER_STATUS_TRANSITIONS[
+          currentStatus as keyof typeof ORDER_STATUS_TRANSITIONS
+        ] || [];
+      setNextPossibleStatus(possibleStatuses);
+      setSelectedNewStatus(null); // Reset selected status
+    }
+  }, [selectedOrder]);
+
+  useEffect(() => {
+    const filteredOrders = getFilteredAndSortedOrders();
+    setFilteredOrders(filteredOrders);
+  }, [orders, sortOrder, statusFilter]);
+
   const fetchOrders = async () => {
     setIsLoading(true);
     setError(null);
     try {
       const data = await orderApiService.getOrders();
-      setOrders(data);
-      setFilteredOrders(data);
+
+      // Aggressive filtering to ensure only valid orders are set
+      const validOrders = data.filter(
+        (order) =>
+          order &&
+          typeof order === "object" &&
+          typeof order.orderID === "number" &&
+          typeof order.orderStatus === "string"
+      );
+
+      if (validOrders.length === 0) {
+        setError("No valid orders found");
+      }
+
+      setOrders(validOrders);
+      setFilteredOrders(validOrders);
     } catch (err) {
-      setError("Failed to fetch orders. Please try again.");
-      console.error(err);
+      console.error("Fetch orders error:", err);
+      setError(err instanceof Error ? err.message : "Failed to fetch orders");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const getFilteredAndSortedOrders = () => {
+    let result = [...orders];
+
+    if (statusFilter) {
+      result = result.filter((order) => order.orderStatus === statusFilter);
+    }
+
+    result.sort((a, b) => {
+      const dateA = new Date(a.orderDate).getTime();
+      const dateB = new Date(b.orderDate).getTime();
+
+      return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+    });
+
+    return result;
   };
 
   const filterOrders = () => {
@@ -101,19 +163,276 @@ const OrderScreen = () => {
     const filtered = orders.filter(
       (order) =>
         order.orderID.toString().includes(searchQuery) ||
-        order.orderStatus.toLowerCase().includes(searchQuery.toLowerCase())
+        order.orderStatus.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        // Thêm điều kiện để giữ lại nhiều trạng thái hơn
+        [
+          "Pending",
+          "Processing",
+          "Shipped",
+          "Delivered",
+          "RefundRequested",
+          "Refunded",
+        ].includes(order.orderStatus)
     );
     setFilteredOrders(filtered);
   };
 
-  const handleViewOrderDetails = async (orderId: number) => {
-    navigation.navigate("OrderDetail", { orderId });
+  const renderFilterSection = () => (
+    <View style={styles.filterContainer}>
+      {/* Filter theo ngày */}
+      <View style={styles.filterGroup}>
+        <Text style={styles.filterLabel}>Sort:</Text>
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            sortOrder === "newest" && styles.filterButtonActive,
+          ]}
+          onPress={() => setSortOrder("newest")}
+        >
+          <Text style={styles.filterButtonText}>Newest</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            sortOrder === "oldest" && styles.filterButtonActive,
+          ]}
+          onPress={() => setSortOrder("oldest")}
+        >
+          <Text style={styles.filterButtonText}>Oldest</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Filter theo status */}
+      <View style={styles.filterGroup}>
+        <Text style={styles.filterLabel}>Status:</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.statusFilterScrollView}
+        >
+          <TouchableOpacity
+            style={[
+              styles.filterButton,
+              statusFilter === null && styles.filterButtonActive,
+            ]}
+            onPress={() => setStatusFilter(null)}
+          >
+            <Text style={styles.filterButtonText}>All</Text>
+          </TouchableOpacity>
+          {ORDER_STATUSES.map((status) => (
+            <TouchableOpacity
+              key={status}
+              style={[
+                styles.filterButton,
+                statusFilter === status && styles.filterButtonActive,
+              ]}
+              onPress={() => setStatusFilter(status)}
+            >
+              <Text style={styles.filterButtonText}>{status}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    </View>
+  );
+
+  const handleUpdateOrderStatus = async () => {
+    if (!selectedOrder || !selectedNewStatus) {
+      Alert.alert("Error", "Please select a new status");
+      return;
+    }
+
+    try {
+      // Determine the appropriate API call based on current and new status
+      let updatedOrder;
+      switch (selectedOrder.orderStatus) {
+        case "Pending":
+          // /api/Admin/${orderId}/status?NewStatus=Processing
+          updatedOrder = await orderApiService.updateOrderStatus(
+            selectedOrder.orderID,
+            "Processing"
+          );
+          break;
+
+        case "Processing":
+          // /api/Admin/${orderId}/status?NewStatus=Shipped&ShipperId=54448292-adeb-44a8-9a97-8d94987b23ac
+          if (!shipperID) {
+            Alert.alert("Error", "Shipper ID is required");
+            return;
+          }
+          updatedOrder = await orderApiService.updateOrderStatus(
+            selectedOrder.orderID,
+            "Shipped",
+            shipperID
+          );
+          break;
+
+        case "Delivered":
+          // /api/Admin/${orderId}/status?NewStatus=Completed
+          updatedOrder = await orderApiService.updateOrderStatus(
+            selectedOrder.orderID,
+            "Completed"
+          );
+          break;
+
+        case "RefundRequested":
+          // /api/Admin/${orderId}/status?NewStatus=Refunded
+          updatedOrder = await orderApiService.updateOrderStatus(
+            selectedOrder.orderID,
+            "Refunded"
+          );
+          break;
+
+        default:
+          throw new Error("Invalid status transition");
+      }
+
+      const updatedOrders = orders.map((order) =>
+        order.orderID === selectedOrder.orderID ? updatedOrder : order
+      );
+      setOrders(updatedOrders);
+      setFilteredOrders(updatedOrders);
+
+      // Reset state
+      setStatusModalVisible(false);
+      setSelectedOrder(null);
+      setShipperID("");
+      setSelectedNewStatus(null);
+      await fetchOrders();
+    } catch (err) {
+      console.error("Status update error:", err);
+      Alert.alert(
+        "Update Failed",
+        err instanceof Error
+          ? err.message
+          : "Unable to update order status. Please try again."
+      );
+    }
+  };
+
+  const openStatusModal = (order: Order) => {
+    setSelectedOrder(order);
+    setStatusModalVisible(true);
+
+    // Reset shipper ID if moving from Processing to Shipped
+    setShipperID(
+      order.orderStatus === "Processing" ? "" : order.shipperID || ""
+    );
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1).toString().padStart(2, "0")}/${date.getFullYear()} ${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
   };
+
+  const [isStatusDropdownVisible, setIsStatusDropdownVisible] = useState(false);
+
+  const renderStatusDropdown = () => (
+    <View style={styles.statusDropdownContainer}>
+      {nextPossibleStatus.map((status) => (
+        <TouchableOpacity
+          key={status}
+          style={[
+            styles.statusDropdownItem,
+            selectedNewStatus === status && styles.statusDropdownItemSelected,
+          ]}
+          onPress={() => {
+            setSelectedNewStatus(status);
+            setIsStatusDropdownVisible(false);
+          }}
+        >
+          <Text style={styles.statusDropdownItemText}>{status}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+
+  const renderStatusUpdateModal = () => (
+    <Modal
+      transparent={true}
+      visible={statusModalVisible}
+      onRequestClose={() => setStatusModalVisible(false)}
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Update Order Status</Text>
+            <TouchableOpacity onPress={() => setStatusModalVisible(false)}>
+              <X size={24} color="#333" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Add order details to make it clear which order is being updated */}
+          {selectedOrder && (
+            <View style={styles.orderUpdateDetails}>
+              <Text style={styles.orderUpdateDetailsText}>
+                Updating Order #{selectedOrder.orderID}
+              </Text>
+              <Text style={styles.orderUpdateDetailsSubtext}>
+                Current Status: {selectedOrder.orderStatus}
+              </Text>
+            </View>
+          )}
+
+          {/* Rest of the modal content remains the same */}
+          {/* Status Selection Dropdown */}
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>New Status</Text>
+            <TouchableOpacity
+              style={styles.statusPickerButton}
+              onPress={() =>
+                setIsStatusDropdownVisible(!isStatusDropdownVisible)
+              }
+            >
+              <Text style={styles.statusPickerButtonText}>
+                {selectedNewStatus || "Select Status"}
+              </Text>
+              <CaretDown size={20} color="#666" />
+            </TouchableOpacity>
+            {isStatusDropdownVisible && renderStatusDropdown()}
+          </View>
+
+          {/* Dynamically show Shipper ID input only for Processing to Shipped */}
+          {selectedOrder?.orderStatus === "Processing" && (
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Shipper ID</Text>
+              <TextInput
+                style={styles.input}
+                value={shipperID}
+                onChangeText={setShipperID}
+                placeholder="Enter Shipper ID"
+                keyboardType="default"
+              />
+            </View>
+          )}
+
+          <View style={styles.formButtonContainer}>
+            <TouchableOpacity
+              style={[styles.formButton, styles.cancelButton]}
+              onPress={() => {
+                setStatusModalVisible(false);
+                setSelectedNewStatus(null);
+                setIsStatusDropdownVisible(false);
+              }}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.formButton,
+                styles.saveButton,
+                !selectedNewStatus && styles.disabledButton,
+              ]}
+              onPress={handleUpdateOrderStatus}
+              disabled={!selectedNewStatus}
+            >
+              <Text style={styles.saveButtonText}>Update Status</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
 
   const renderHeader = () => (
     <>
@@ -146,45 +465,99 @@ const OrderScreen = () => {
       ) : (
         <FlatList
           data={filteredOrders}
-          keyExtractor={(item) => item.orderID.toString()}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.orderCard}
-              onPress={() => handleViewOrderDetails(item.orderID)}
-            >
-              <View style={styles.orderHeader}>
-                <Text style={styles.orderId}>Order #{item.orderID}</Text>
-                <View
-                  style={[
-                    styles.statusBadge,
-                    item.orderStatus === "Completed"
-                      ? styles.statusCompleted
-                      : item.orderStatus === "Pending"
-                        ? styles.statusPending
-                        : item.orderStatus === "Cancelled"
-                          ? styles.statusCancelled
-                          : item.orderStatus === "Shipped"
-                            ? styles.statusShipped
-                            : item.orderStatus === "Delivered"
-                              ? styles.statusDelivered
-                              : item.orderStatus === "RefundRequested"
-                                ? styles.statusRefundRequested
-                                : item.orderStatus === "Refunded"
-                                  ? styles.statusRefunded
-                                  : styles.statusProcessing,
-                  ]}
-                >
-                  <Text style={styles.statusText}>{item.orderStatus}</Text>
+          keyExtractor={(item, index) => {
+            if (item && typeof item.orderID === "number") {
+              return item.orderID.toString();
+            }
+            return `order-${index}`;
+          }}
+          renderItem={({ item }) => {
+            // Add multiple layers of defensive checks
+            if (!item) {
+              console.warn("Received undefined or null item in renderItem");
+              return null;
+            }
+
+            // Explicitly check for orderID, ensuring it's a number
+            if (typeof item.orderID !== "number") {
+              return null;
+            }
+
+            const getStatusStyle = (status: string) => {
+              switch (status) {
+                case "Completed":
+                  return styles.statusCompleted;
+                case "Pending":
+                  return styles.statusPending;
+                case "Cancelled":
+                  return styles.statusCancelled;
+                case "Processing":
+                  return styles.statusProcessing;
+                case "Shipped":
+                  return styles.statusShipped;
+                case "Delivered":
+                  return styles.statusDelivered;
+                case "RefundRequested":
+                  return styles.statusRefundRequested;
+                case "Refunded":
+                  return styles.statusRefunded;
+                default:
+                  return styles.statusProcessing;
+              }
+            };
+
+            return (
+              <TouchableOpacity
+                key={`order-${item.orderID}`}
+                style={styles.orderCard}
+                onPress={() => {
+                  // Extra safety check before navigation
+                  if (item && item.orderID) {
+                    navigation.navigate("OrderDetail", {
+                      orderId: item.orderID,
+                    });
+                  }
+                }}
+              >
+                <View style={styles.orderHeader}>
+                  <Text style={styles.orderId}>
+                    {/* Use optional chaining and nullish coalescing */}
+                    Order #{item.orderID?.toString() ?? "N/A"}
+                  </Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.statusBadge,
+                      // Add nullish coalescing for status styling
+                      getStatusStyle(item.orderStatus ?? "Unknown"),
+                    ]}
+                    onPress={() => {
+                      // Extra safety checks
+                      if (
+                        item?.orderStatus &&
+                        Object.keys(ORDER_STATUS_TRANSITIONS).includes(
+                          item.orderStatus
+                        )
+                      ) {
+                        openStatusModal(item);
+                      }
+                    }}
+                  >
+                    <Text style={styles.statusText}>
+                      {item.orderStatus ?? "Unknown Status"}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-              </View>
-              <Text style={styles.orderDate}>
-                {formatDate(item.orderDate)}
-              </Text>
-              <Text style={styles.orderTotal}>
-                Total: ${item.total.toFixed(2)}
-              </Text>
-            </TouchableOpacity>
-          )}
+                <Text style={styles.orderDate}>
+                  {item.orderDate
+                    ? formatDate(item.orderDate)
+                    : "Date Unavailable"}
+                </Text>
+                <Text style={styles.orderTotal}>
+                  Total: ${item.total?.toFixed(2) ?? "N/A"}
+                </Text>
+              </TouchableOpacity>
+            );
+          }}
           contentContainerStyle={styles.listContent}
           refreshing={isLoading}
           onRefresh={fetchOrders}
@@ -193,11 +566,18 @@ const OrderScreen = () => {
               <Text style={styles.emptyText}>No orders found</Text>
             </View>
           }
-          ListHeaderComponent={renderHeader()}
+          ListHeaderComponent={() => (
+            <>
+              {renderHeader()}
+              {renderFilterSection()}
+            </>
+          )}
           onScroll={handleScroll}
           scrollEventThrottle={16}
         />
       )}
+
+      {renderStatusUpdateModal()}
     </View>
   );
 };
@@ -345,24 +725,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#333",
   },
-  actionButtonContainer: {
-    flexDirection: "row",
-    marginTop: 10,
-  },
-  actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 5,
-    marginRight: 10,
-  },
-  actionButtonText: {
-    color: "#FFF",
-    fontWeight: "bold",
-    marginLeft: 5,
-  },
   modalContainer: {
     flex: 1,
     justifyContent: "center",
@@ -423,7 +785,6 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontWeight: "bold",
   },
-  // Status picker styles
   statusPickerButton: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -458,6 +819,96 @@ const styles = StyleSheet.create({
   statusPickerItemSelected: {
     fontWeight: "bold",
     color: "#1E88E5",
+  },
+  cancelButtonText: {
+    color: "#333",
+    fontWeight: "600",
+  },
+  saveButtonText: {
+    color: "#FFF",
+    fontWeight: "600",
+  },
+  disabledButton: {
+    backgroundColor: "#A0A0A0",
+  },
+  statusDropdownContainer: {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    right: 0,
+    backgroundColor: "#FFF",
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+    maxHeight: 200,
+    zIndex: 1000,
+  },
+  statusDropdownItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  statusDropdownItemText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  statusDropdownItemSelected: {
+    backgroundColor: "#E6F2FF",
+  },
+  formGroup: {
+    marginBottom: 15,
+    position: "relative",
+  },
+  filterContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 10,
+  },
+  filterGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  filterLabel: {
+    marginRight: 10,
+    fontWeight: "bold",
+  },
+  filterButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: "#F0F0F0",
+    borderRadius: 20,
+    marginRight: 8,
+  },
+  filterButtonActive: {
+    backgroundColor: "#1E88E5",
+  },
+  filterButtonText: {
+    color: "#333",
+    fontSize: 14,
+  },
+  statusFilterScrollView: {
+    alignItems: "center",
+  },
+  orderUpdateDetails: {
+    backgroundColor: "#F0F0F0",
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 15,
+    alignItems: "center",
+  },
+  orderUpdateDetailsText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  orderUpdateDetailsSubtext: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 5,
   },
 });
 
