@@ -24,7 +24,7 @@ interface LoginScreenProps {
   route: LoginScreenRouteProp;
 }
 
-const API_URL = 'http://192.168.1.15:5069'; 
+const API_URL = 'https://api.apple-mart.capybara.pro.vn'; 
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [email, setEmail] = useState('');

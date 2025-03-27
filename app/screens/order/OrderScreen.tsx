@@ -19,7 +19,7 @@ import {
 } from "react-native";
 import { TouchableWithoutFeedback, Keyboard } from "react-native";
 import { MagnifyingGlass, X, CaretDown } from "phosphor-react-native";
-import orderApiService, { Order } from "../../services/OrderApiService";
+import orderApiService, { Order, Shipper } from "../../services/OrderApiService";
 import axios from "axios";
 import { RouteProp, useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -57,6 +57,9 @@ const OrderScreen = () => {
   );
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [shippers, setShippers] = useState<Shipper[]>([]);
+  const [isShipperDropdownVisible, setIsShipperDropdownVisible] = useState(false);
+  const [selectedShipper, setSelectedShipper] = useState<Shipper | null>(null);
 
   const ORDER_STATUSES = [
     "Pending",
@@ -107,7 +110,19 @@ const OrderScreen = () => {
 
   useEffect(() => {
     fetchOrders();
+    fetchShippers();
   }, []);
+
+  const fetchShippers = async () => {
+    try {
+      const fetchedShippers = await orderApiService.getAllShippers();
+      console.log("Fetched Shippers:", fetchedShippers);  // Add this line
+      setShippers(fetchedShippers);
+    } catch (error) {
+      console.error("Error fetching shippers:", error);
+      Alert.alert("Error", "Could not fetch shipper list");
+    }
+  };
 
   useEffect(() => {
     if (selectedOrder) {
@@ -247,14 +262,14 @@ const OrderScreen = () => {
           break;
   
         case "Processing":
-          if (!shipperID) {
-            Alert.alert("Error", "Shipper ID is required");
+          if (!selectedShipper) {
+            Alert.alert("Error", "Please select a shipper");
             return;
           }
           updatedOrder = await orderApiService.updateOrderStatus(
             selectedOrder.orderID,
             "Shipped",
-            shipperID
+            selectedShipper.shipperID
           );
           break;
   
@@ -286,7 +301,7 @@ const OrderScreen = () => {
         // Reset state
         setStatusModalVisible(false);
         setSelectedOrder(null);
-        setShipperID("");
+        setSelectedShipper(null);
         setSelectedNewStatus(null);
         await fetchOrders();
       }
@@ -304,11 +319,7 @@ const OrderScreen = () => {
   const openStatusModal = (order: Order) => {
     setSelectedOrder(order);
     setStatusModalVisible(true);
-
-    // Reset shipper ID if moving from Processing to Shipped
-    setShipperID(
-      order.orderStatus === "Processing" ? "" : order.shipperID || ""
-    );
+    setSelectedShipper(null);
   };
 
   const formatDate = (dateString: string) => {
@@ -376,7 +387,6 @@ const OrderScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Add order details to make it clear which order is being updated */}
           {selectedOrder && (
             <View style={styles.orderUpdateDetails}>
               <Text style={styles.orderUpdateDetailsText}>
@@ -388,7 +398,6 @@ const OrderScreen = () => {
             </View>
           )}
 
-          {/* Rest of the modal content remains the same */}
           {/* Status Selection Dropdown */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>New Status</Text>
@@ -406,17 +415,22 @@ const OrderScreen = () => {
             {isStatusDropdownVisible && renderStatusDropdown()}
           </View>
 
-          {/* Dynamically show Shipper ID input only for Processing to Shipped */}
+          {/* Dynamically show Shipper Selection only for Processing to Shipped */}
           {selectedOrder?.orderStatus === "Processing" && (
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Shipper ID</Text>
-              <TextInput
-                style={styles.input}
-                value={shipperID}
-                onChangeText={setShipperID}
-                placeholder="Enter Shipper ID"
-                keyboardType="default"
-              />
+              <Text style={styles.label}>Select Shipper</Text>
+              <TouchableOpacity
+                style={styles.shipperPickerButton}
+                onPress={() => setIsShipperDropdownVisible(!isShipperDropdownVisible)}
+              >
+                <Text style={styles.shipperPickerButtonText}>
+                  {selectedShipper 
+                    ? `${selectedShipper.name} (${selectedShipper.shipperID})` 
+                    : "Select Shipper"}
+                </Text>
+                <CaretDown size={20} color="#666" />
+              </TouchableOpacity>
+              {isShipperDropdownVisible && renderShipperDropdown()}
             </View>
           )}
 
@@ -426,7 +440,9 @@ const OrderScreen = () => {
               onPress={() => {
                 setStatusModalVisible(false);
                 setSelectedNewStatus(null);
+                setSelectedShipper(null);
                 setIsStatusDropdownVisible(false);
+                setIsShipperDropdownVisible(false);
               }}
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -435,10 +451,10 @@ const OrderScreen = () => {
               style={[
                 styles.formButton,
                 styles.saveButton,
-                !selectedNewStatus && styles.disabledButton,
+                (!selectedNewStatus || (selectedOrder?.orderStatus === "Processing" && !selectedShipper)) && styles.disabledButton,
               ]}
               onPress={handleUpdateOrderStatus}
-              disabled={!selectedNewStatus}
+              disabled={!selectedNewStatus || (selectedOrder?.orderStatus === "Processing" && !selectedShipper)}
             >
               <Text style={styles.saveButtonText}>Update Status</Text>
             </TouchableOpacity>
@@ -446,6 +462,28 @@ const OrderScreen = () => {
         </View>
       </View>
     </Modal>
+  );
+
+  const renderShipperDropdown = () => (
+    <View style={styles.shipperDropdownContainer}>
+      {shippers.map((shipper) => (
+        <TouchableOpacity
+          key={shipper.id} 
+          style={[
+            styles.shipperDropdownItem,
+            selectedShipper?.id === shipper.id && styles.shipperDropdownItemSelected,  
+          ]}
+          onPress={() => {
+            setSelectedShipper(shipper);
+            setIsShipperDropdownVisible(false);
+          }}
+        >
+          <Text style={styles.shipperDropdownItemText}>
+            {shipper.name} {shipper.id}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
   );
 
   const renderHeader = () => (
@@ -918,6 +956,48 @@ const styles = StyleSheet.create({
   },
   clearSearchButton: {
     padding: 5,
+  },
+  shipperPickerButton: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#DDD",
+    borderRadius: 5,
+    padding: 10,
+    backgroundColor: "#FFF",
+  },
+  shipperPickerButtonText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  shipperDropdownContainer: {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    right: 0,
+    backgroundColor: "#FFF",
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+    maxHeight: 200,
+    zIndex: 1000,
+  },
+  shipperDropdownItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  shipperDropdownItemText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  shipperDropdownItemSelected: {
+    backgroundColor: "#E6F2FF",
   },
 });
 

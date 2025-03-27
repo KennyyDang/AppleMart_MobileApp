@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { refreshToken } from './authService'; // Import the refreshToken function from your auth service
 
-const BASE_URL = 'http://192.168.1.15:5069/api/Admin';
+const BASE_URL = 'https://api.apple-mart.capybara.pro.vn/api/Admin';
 
 // Create an axios instance
 const apiClient = axios.create({
