@@ -2,7 +2,7 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert } from "react-native";
 
-const API_BASE_URL = "http://192.168.1.106:5069/api";
+const API_BASE_URL = "http://192.168.1.15:5069/api";
 
 
 export interface OrderDetail {

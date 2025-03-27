@@ -7,8 +7,7 @@ import { RouteProp } from '@react-navigation/native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { Ionicons } from '@expo/vector-icons'; // Import icon để bật/tắt mật khẩu
-import '../../assets/Apple.png'
+import { Ionicons } from '@expo/vector-icons';
 
 // Định nghĩa kiểu navigation
 type RootStackParamList = {
@@ -25,47 +24,85 @@ interface LoginScreenProps {
   route: LoginScreenRouteProp;
 }
 
-const API_URL = 'http://192.168.1.106:5069'; 
-
-
+const API_URL = 'http://192.168.1.15:5069'; 
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [secureTextEntry, setSecureTextEntry] = useState(true); // Trạng thái ẩn/hiện mật khẩu
+  const [secureTextEntry, setSecureTextEntry] = useState(true);
 
   const handleLogin = async () => {
-    console.log("Trying to login with:", email, password);
+    // Validate input
+    if (!email || !password) {
+      Alert.alert('Lỗi', 'Vui lòng nhập email và mật khẩu');
+      return;
+    }
+
     try {
+      // Detailed logging
+      console.log("Login attempt:", { email, password });
 
-      const response = await axios.post(`${API_URL}/api/Account/Login`, { email, password });
-  
-      console.log('API response:', response.data);
+      // Modify the login endpoint call to ensure proper data sending
+      const response = await axios.post(`${API_URL}/api/Account/Login`, 
+        { 
+          email, 
+          password 
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
 
-      const { accessToken, refreshToken, userID, userName, name } = response.data;
+      const { 
+        accessToken = '', 
+        refreshToken = '', 
+        userID = '', 
+        userName = '', 
+        name = '' 
+      } = response.data || {};
 
-  
+      // Validate tokens
       if (accessToken && refreshToken) {
+        // Create user object
         const currentUser = {
           userID,
           userName,
           name
         };
       
+        // Store multiple items securely
         await AsyncStorage.multiSet([ 
           ['accessToken', accessToken],
           ['refreshToken', refreshToken],
-          ['currentUser', JSON.stringify(currentUser)] // 👈 Lưu user object
+          ['currentUser', JSON.stringify(currentUser)]
         ]);
-  
+
+        // Verify storage (optional but helpful for debugging)
+        const storedToken = await AsyncStorage.getItem('accessToken');
+
+        // Navigate to main screen
         navigation.replace('Main');
       } else {
-        Alert.alert('Lỗi', 'Thông tin đăng nhập không hợp lệ!');
+        // Handle case where tokens are missing
+        Alert.alert('Lỗi', 'Không nhận được token xác thực. Vui lòng thử lại.');
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Sai email hoặc mật khẩu. Vui lòng thử lại!';
-      console.log('Login error:', errorMessage);
-      Alert.alert('Lỗi', errorMessage);
+      // Comprehensive error handling
+      console.error('Login error details:', error);
+
+      // Check if it's an axios error with response
+      if (axios.isAxiosError(error)) {
+        const errorMessage = error.response?.data?.message 
+          || error.response?.data 
+          || 'Đăng nhập thất bại. Vui lòng kiểm tra kết nối.';
+        
+        Alert.alert('Lỗi Đăng Nhập', errorMessage);
+      } else {
+        // Generic error handling
+        Alert.alert('Lỗi', 'Có lỗi xảy ra. Vui lòng thử lại sau.');
+      }
     }
   };  
 
@@ -85,7 +122,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         autoCapitalize="none"
       />
 
-      {/* Password Input với Icon để hiển thị mật khẩu */}
+      {/* Password Input */}
       <View style={styles.passwordContainer}>
         <TextInput
           style={styles.passwordInput}
@@ -93,7 +130,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           placeholderTextColor="#7F7F7F"
           value={password}
           onChangeText={setPassword}
-          secureTextEntry={secureTextEntry} // Ẩn/hiện mật khẩu
+          secureTextEntry={secureTextEntry}
         />
         <TouchableOpacity onPress={() => setSecureTextEntry(!secureTextEntry)}>
           <Ionicons
@@ -120,7 +157,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           Bạn không có tài khoản? <Text style={{ fontWeight: 'bold' }}>Đăng ký</Text>
         </Text>
       </TouchableOpacity>
-
     </View>
   );
 };

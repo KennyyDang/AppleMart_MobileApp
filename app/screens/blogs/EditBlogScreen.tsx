@@ -127,35 +127,31 @@ const EditBlogScreen = () => {
     setLoading(true);
 
     try {
-      // Tạo FormData nếu có ảnh
       let imageUrl = blog.imageUrl;
       if (image && image !== blog.imageUrl) {
-        // Trong tình huống thực tế, bạn sẽ upload ảnh lên server trước
-        // Sau đó nhận URL trả về để lưu vào blog post
-
-        // Giả định ảnh đã được upload và có URL
+  
         imageUrl = image;
       }
-
-      // Tạo đối tượng blog cập nhật
-      const blogData = {
+      const blogData: BlogPost = {
         blogID: blog.blogID,
         title: title.trim(),
         content: content.trim(),
         author: blog.author || "Current User",
         category: category,
-        imageUrl: imageUrl,
+        imageUrl: imageUrl, // Include the image URL
+        blogImages: imageUrl 
+          ? [{ imageUrl: imageUrl }]  // Add this line to support blog images
+          : [],
         uploadDate: blog.uploadDate,
         updateDate: new Date().toISOString(),
         view: blog.view || 0,
         like: blog.like || 0,
         isDeleted: blog.isDeleted || false,
-        productID: parseInt(productId), // Ensure productID is included
+        productId: parseInt(productId),
       };
 
       console.log("Updating blog with data:", blogData);
 
-      // Gọi API để cập nhật bài viết
       const result = await updateBlog(blogData);
 
       if (result) {

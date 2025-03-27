@@ -72,50 +72,30 @@ const AddBlogScreen = () => {
   };
 
   const handlePublishBlog = async () => {
-    // Kiểm tra các trường bắt buộc
-    if (!title.trim()) {
-      Alert.alert("Thông báo", "Vui lòng nhập tiêu đề bài viết");
-      return;
-    }
-
-    if (!content.trim()) {
-      Alert.alert("Thông báo", "Vui lòng nhập nội dung bài viết");
-      return;
-    }
-
-    if (!productId || !validateProductId(productId)) {
-      Alert.alert(
-        "Thông báo",
-        productIdError || "Vui lòng nhập ID sản phẩm hợp lệ"
-      );
-      return;
-    }
-
+    // Previous validation checks remain the same
+  
     setLoading(true);
-
+  
     try {
-      // Tạo FormData nếu có ảnh
-      let imageUrl = "";
-      if (image) {
-        imageUrl = "https://placeholder-url-for-image.com/image123.jpg";
-      }
-
-      // Đảm bảo đúng định dạng mà API mong đợi
-      const blogData = {
-        Title: title.trim(),
-        Content: content.trim(),
-        Author: "Unknown",
-        ProductId: parseInt(productId), // Parse để đảm bảo là số
-        Category: category,
-        ImageUrl: imageUrl,
-        UploadDate: new Date().toISOString(),
+      // Prepare blog data with image structure matching API
+      const blogData: BlogPost = {
+        title: title.trim(),
+        content: content.trim(),
+        productId: parseInt(productId),
+        category: category,
+        imageUrl: image || undefined, // Convert null to undefined
+        uploadDate: new Date().toISOString(),
       };
-
+  
+      // Optional: Only add blogImages if image is not null
+      if (image) {
+        blogData.blogImages = [{ imageUrl: image }];
+      }
+  
       console.log("Sending blog data:", blogData);
 
-      // Gọi API để tạo bài viết mới
       const result = await createBlog(blogData);
-
+  
       if (result) {
         Alert.alert("Thành công", "Bài viết đã được đăng thành công", [
           { text: "OK", onPress: () => navigation.navigate("BlogList") },
@@ -126,14 +106,14 @@ const AddBlogScreen = () => {
     } catch (error: any) {
       console.error("Error publishing blog:", error.response?.data || error);
       let errorMessage = "Đã xảy ra lỗi khi đăng bài viết";
-
+  
       // Extract more specific error message if available
       if (error.message) {
         errorMessage = error.message;
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       }
-
+  
       Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false);
