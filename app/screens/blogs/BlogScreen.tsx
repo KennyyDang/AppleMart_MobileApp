@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Modal,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
@@ -30,19 +32,48 @@ type BlogStackParamList = {
 
 type BlogNavigationProp = StackNavigationProp<BlogStackParamList, "BlogList">;
 
+type SortOption = 'newest' | 'oldest' | 'mostViewed' | 'mostLiked';
+
 const BlogScreen = () => {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [sortOption, setSortOption] = useState<SortOption>('newest');
+  const [isSortModalVisible, setIsSortModalVisible] = useState(false);
   const navigation = useNavigation<BlogNavigationProp>();
   const { handleScroll } = useTabBar();
   
   const loadBlogPosts = async () => {
     setLoading(true);
     const data = await fetchAllBlogs();
-    setBlogPosts(data);
+    const sortedData = sortBlogs(data, sortOption);
+    setBlogPosts(sortedData);
     setLoading(false);
     setRefreshing(false);
+  };
+
+  const sortBlogs = (blogs: BlogPost[], option: SortOption): BlogPost[] => {
+    switch (option) {
+      case 'newest':
+        return [...blogs].sort((a, b) => {
+          // Ưu tiên sử dụng updatedDate nếu có, nếu không thì dùng uploadDate
+          const dateA = new Date(a.updateDate || a.uploadDate || 0).getTime();
+          const dateB = new Date(b.updateDate || b.uploadDate || 0).getTime();
+          return dateB - dateA;
+        });
+      case 'oldest':
+        return [...blogs].sort((a, b) => {
+          const dateA = new Date(a.updateDate || a.uploadDate || 0).getTime();
+          const dateB = new Date(b.updateDate || b.uploadDate || 0).getTime();
+          return dateA - dateB;
+        });
+      case 'mostViewed':
+        return [...blogs].sort((a, b) => (b.view || 0) - (a.view || 0));
+      case 'mostLiked':
+        return [...blogs].sort((a, b) => (b.like || 0) - (a.like || 0));
+      default:
+        return blogs;
+    }
   };
 
   useEffect(() => {
@@ -51,7 +82,7 @@ const BlogScreen = () => {
     return () => {
       unsubscribe();
     };
-  }, [navigation]);
+  }, [navigation, sortOption]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -124,7 +155,8 @@ const BlogScreen = () => {
           </TouchableOpacity>
 
           <Text style={styles.dateText}>
-            {new Date(item.uploadDate || Date.now()).toLocaleDateString()}
+            {/* Hiển thị ngày cập nhật, nếu không có thì hiển thị ngày tải lên */}
+            {new Date(item.updateDate || item.uploadDate || Date.now()).toLocaleDateString()}
           </Text>
         </View>
       </View>
@@ -146,18 +178,65 @@ const BlogScreen = () => {
       </View>
     </TouchableOpacity>
   );
+  
+  const renderSortModal = () => (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={isSortModalVisible}
+      onRequestClose={() => setIsSortModalVisible(false)}
+    >
+      <TouchableWithoutFeedback onPress={() => setIsSortModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Sắp xếp theo</Text>
+              {[
+                { value: 'newest', label: 'Mới nhất' },
+                { value: 'oldest', label: 'Cũ nhất' },
+                { value: 'mostViewed', label: 'Xem nhiều nhất' },
+                { value: 'mostLiked', label: 'Được thích nhiều nhất' }
+              ].map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.sortOption,
+                    sortOption === option.value && styles.selectedSortOption
+                  ]}
+                  onPress={() => {
+                    setSortOption(option.value as SortOption);
+                    setIsSortModalVisible(false);
+                  }}
+                >
+                  <Text style={styles.sortOptionText}>{option.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
+  );
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Blog</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => navigation.navigate("AddBlog")}
-        >
-          <Feather name="plus" size={20} color="white" />
-          <Text style={styles.addButtonText}>Tạo bài viết</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.sortButton}
+            onPress={() => setIsSortModalVisible(true)}
+          >
+            <Feather name="filter" size={20} color="#6C63FF" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => navigation.navigate("AddBlog")}
+          >
+            <Feather name="plus" size={20} color="white" />
+            <Text style={styles.addButtonText}>Tạo bài viết</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading && !refreshing ? (
@@ -177,10 +256,12 @@ const BlogScreen = () => {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
-          onScroll={handleScroll} // Sử dụng hàm handleScroll từ context
-          scrollEventThrottle={16} // Tần suất phát hiện sự kiện cuộn
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
         />
       )}
+
+      {renderSortModal()}
     </View>
   );
 
@@ -310,6 +391,43 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sortButton: {
+    marginRight: 12,
+    padding: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  sortOption: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  selectedSortOption: {
+    backgroundColor: '#f0f0f0',
+  },
+  sortOptionText: {
+    fontSize: 16,
+    textAlign: 'center',
   },
 });
 
