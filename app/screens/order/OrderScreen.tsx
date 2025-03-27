@@ -36,7 +36,7 @@ type OrderNavigationProp = StackNavigationProp<
 >;
 
 const ORDER_STATUS_TRANSITIONS = {
-  Pending: ["Processing"],
+  Pending: ["Processing", "Cancelled"],
   Processing: ["Shipped"],
   Delivered: ["Completed"],
   RefundRequested: ["Refunded"],
@@ -46,7 +46,6 @@ const OrderScreen = () => {
   const navigation = useNavigation<OrderNavigationProp>();
   const [searchQuery, setSearchQuery] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
-  const [setFilteredOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -229,21 +228,25 @@ const OrderScreen = () => {
       Alert.alert("Error", "Please select a new status");
       return;
     }
-
+  
     try {
-      // Determine the appropriate API call based on current and new status
-      let updatedOrder;
+      let updatedOrder: Order | undefined;
       switch (selectedOrder.orderStatus) {
         case "Pending":
-          // /api/Admin/${orderId}/status?NewStatus=Processing
-          updatedOrder = await orderApiService.updateOrderStatus(
-            selectedOrder.orderID,
-            "Processing"
-          );
+          if (selectedNewStatus === "Processing") {
+            updatedOrder = await orderApiService.updateOrderStatus(
+              selectedOrder.orderID,
+              "Processing"
+            );
+          } else if (selectedNewStatus === "Cancelled") {
+            updatedOrder = await orderApiService.updateOrderStatus(
+              selectedOrder.orderID,
+              "Cancelled"
+            );
+          }
           break;
-
+  
         case "Processing":
-          // /api/Admin/${orderId}/status?NewStatus=Shipped&ShipperId=54448292-adeb-44a8-9a97-8d94987b23ac
           if (!shipperID) {
             Alert.alert("Error", "Shipper ID is required");
             return;
@@ -254,38 +257,39 @@ const OrderScreen = () => {
             shipperID
           );
           break;
-
+  
         case "Delivered":
-          // /api/Admin/${orderId}/status?NewStatus=Completed
           updatedOrder = await orderApiService.updateOrderStatus(
             selectedOrder.orderID,
             "Completed"
           );
           break;
-
+  
         case "RefundRequested":
-          // /api/Admin/${orderId}/status?NewStatus=Refunded
           updatedOrder = await orderApiService.updateOrderStatus(
             selectedOrder.orderID,
             "Refunded"
           );
           break;
-
+  
         default:
           throw new Error("Invalid status transition");
       }
-
-      const updatedOrders = orders.map((order) =>
-        order.orderID === selectedOrder.orderID ? updatedOrder : order
-      );
-      setOrders(updatedOrders);
-
-      // Reset state
-      setStatusModalVisible(false);
-      setSelectedOrder(null);
-      setShipperID("");
-      setSelectedNewStatus(null);
-      await fetchOrders();
+  
+      // Add a null check for updatedOrder before using it
+      if (updatedOrder) {
+        const updatedOrders = orders.map((order) =>
+          order.orderID === selectedOrder.orderID ? updatedOrder : order
+        );
+        setOrders(updatedOrders);
+  
+        // Reset state
+        setStatusModalVisible(false);
+        setSelectedOrder(null);
+        setShipperID("");
+        setSelectedNewStatus(null);
+        await fetchOrders();
+      }
     } catch (err) {
       console.error("Status update error:", err);
       Alert.alert(
