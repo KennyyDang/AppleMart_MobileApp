@@ -19,11 +19,9 @@ const NotificationScreen = () => {
   const fetchNotifications = async () => {
     try {
       const data = await getNotifications();
-      console.log('API Response:', data);
 
       // Thông báo từ bảng Notifications
       const dbNotifications = data.notifications || [];
-      console.log('Notifications from DB:', dbNotifications);
 
       // Thông báo từ shippedOrders
       const shippedOrderNotifications = (data.shippedOrders || []).map((order) => {

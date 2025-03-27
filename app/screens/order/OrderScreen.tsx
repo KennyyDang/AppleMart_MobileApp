@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   View,
   Text,
@@ -11,14 +17,8 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
-import {
-  MagnifyingGlass,
-  Plus,
-  Pencil,
-  Trash,
-  X,
-  CaretDown,
-} from "phosphor-react-native";
+import { TouchableWithoutFeedback, Keyboard } from "react-native";
+import { MagnifyingGlass, X, CaretDown } from "phosphor-react-native";
 import orderApiService, { Order } from "../../services/OrderApiService";
 import axios from "axios";
 import { RouteProp, useNavigation } from "@react-navigation/native";
@@ -42,22 +42,11 @@ const ORDER_STATUS_TRANSITIONS = {
   RefundRequested: ["Refunded"],
 };
 
-const ORDER_STATUSES = [
-  "Pending",
-  "Processing",
-  "Shipped",
-  "Delivered",
-  "Completed",
-  "Refunded",
-  "RefundRequested",
-  "Cancelled",
-];
-
 const OrderScreen = () => {
   const navigation = useNavigation<OrderNavigationProp>();
   const [searchQuery, setSearchQuery] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
-  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+  const [setFilteredOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -83,13 +72,43 @@ const OrderScreen = () => {
 
   const { handleScroll } = useTabBar();
 
-  useEffect(() => {
-    fetchOrders();
+  const filteredOrders = useMemo(() => {
+    let result = [...orders];
+
+    if (statusFilter) {
+      result = result.filter((order) => order.orderStatus === statusFilter);
+    }
+
+    const query = searchQuery.trim().toLowerCase();
+    if (query) {
+      result = result.filter((order) => {
+        const orderIdMatch = order.orderID
+          .toString()
+          .toLowerCase()
+          .includes(query);
+        const statusMatch = order.orderStatus.toLowerCase().includes(query);
+
+        return orderIdMatch || statusMatch;
+      });
+    }
+
+    result.sort((a, b) => {
+      const dateA = new Date(a.orderDate).getTime();
+      const dateB = new Date(b.orderDate).getTime();
+
+      return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+    });
+
+    return result;
+  }, [orders, statusFilter, searchQuery, sortOrder]);
+
+  const handleSearchChange = useCallback((text: string) => {
+    setSearchQuery(text);
   }, []);
 
   useEffect(() => {
-    filterOrders();
-  }, [searchQuery, orders]);
+    fetchOrders();
+  }, []);
 
   useEffect(() => {
     if (selectedOrder) {
@@ -99,14 +118,9 @@ const OrderScreen = () => {
           currentStatus as keyof typeof ORDER_STATUS_TRANSITIONS
         ] || [];
       setNextPossibleStatus(possibleStatuses);
-      setSelectedNewStatus(null); // Reset selected status
+      setSelectedNewStatus(null);
     }
   }, [selectedOrder]);
-
-  useEffect(() => {
-    const filteredOrders = getFilteredAndSortedOrders();
-    setFilteredOrders(filteredOrders);
-  }, [orders, sortOrder, statusFilter]);
 
   const fetchOrders = async () => {
     setIsLoading(true);
@@ -114,7 +128,6 @@ const OrderScreen = () => {
     try {
       const data = await orderApiService.getOrders();
 
-      // Aggressive filtering to ensure only valid orders are set
       const validOrders = data.filter(
         (order) =>
           order &&
@@ -128,7 +141,6 @@ const OrderScreen = () => {
       }
 
       setOrders(validOrders);
-      setFilteredOrders(validOrders);
     } catch (err) {
       console.error("Fetch orders error:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch orders");
@@ -137,45 +149,21 @@ const OrderScreen = () => {
     }
   };
 
-  const getFilteredAndSortedOrders = () => {
-    let result = [...orders];
-
-    if (statusFilter) {
-      result = result.filter((order) => order.orderStatus === statusFilter);
-    }
-
-    result.sort((a, b) => {
-      const dateA = new Date(a.orderDate).getTime();
-      const dateB = new Date(b.orderDate).getTime();
-
-      return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
-    });
-
-    return result;
-  };
-
-  const filterOrders = () => {
-    if (!searchQuery.trim()) {
-      setFilteredOrders(orders);
-      return;
-    }
-
-    const filtered = orders.filter(
-      (order) =>
-        order.orderID.toString().includes(searchQuery) ||
-        order.orderStatus.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        // Thêm điều kiện để giữ lại nhiều trạng thái hơn
-        [
-          "Pending",
-          "Processing",
-          "Shipped",
-          "Delivered",
-          "RefundRequested",
-          "Refunded",
-        ].includes(order.orderStatus)
+  useEffect(() => {
+    const keyboardDidHideListener = Keyboard.addListener(
+      "keyboardDidHide",
+      () => {
+        // Kiểm tra nếu không phải đang ở modal
+        if (!statusModalVisible) {
+          Keyboard.dismiss();
+        }
+      }
     );
-    setFilteredOrders(filtered);
-  };
+
+    return () => {
+      keyboardDidHideListener.remove();
+    };
+  }, [statusModalVisible]);
 
   const renderFilterSection = () => (
     <View style={styles.filterContainer}>
@@ -291,7 +279,6 @@ const OrderScreen = () => {
         order.orderID === selectedOrder.orderID ? updatedOrder : order
       );
       setOrders(updatedOrders);
-      setFilteredOrders(updatedOrders);
 
       // Reset state
       setStatusModalVisible(false);
@@ -344,6 +331,29 @@ const OrderScreen = () => {
           <Text style={styles.statusDropdownItemText}>{status}</Text>
         </TouchableOpacity>
       ))}
+    </View>
+  );
+
+  const renderSearchBar = () => (
+    <View style={styles.searchContainer}>
+      <MagnifyingGlass size={20} color="#666" style={styles.searchIcon} />
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Search by Order ID or Status"
+        placeholderTextColor="#999"
+        value={searchQuery}
+        onChangeText={handleSearchChange}
+      />
+      {searchQuery.length > 0 && (
+        <TouchableOpacity
+          style={styles.clearSearchButton}
+          onPress={() => {
+            setSearchQuery("");
+          }}
+        >
+          <X size={16} color="#666" />
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -440,23 +450,18 @@ const OrderScreen = () => {
         <Text style={styles.headerTitle}>Order</Text>
       </View>
 
-      <View style={styles.searchContainer}>
-        <MagnifyingGlass size={20} color="#666" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search orders..."
-          placeholderTextColor="#aaa"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-      </View>
-
       {error && <Text style={styles.errorText}>{error}</Text>}
     </>
   );
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      onStartShouldSetResponder={() => {
+        Keyboard.dismiss();
+        return false;
+      }}
+    >
       {isLoading && !filteredOrders.length ? (
         <>
           {renderHeader()}
@@ -521,13 +526,11 @@ const OrderScreen = () => {
               >
                 <View style={styles.orderHeader}>
                   <Text style={styles.orderId}>
-                    {/* Use optional chaining and nullish coalescing */}
                     Order #{item.orderID?.toString() ?? "N/A"}
                   </Text>
                   <TouchableOpacity
                     style={[
                       styles.statusBadge,
-                      // Add nullish coalescing for status styling
                       getStatusStyle(item.orderStatus ?? "Unknown"),
                     ]}
                     onPress={() => {
@@ -563,12 +566,17 @@ const OrderScreen = () => {
           onRefresh={fetchOrders}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No orders found</Text>
+              <Text style={styles.emptyText}>
+                {searchQuery
+                  ? "No orders match your search"
+                  : "No orders found"}
+              </Text>
             </View>
           }
           ListHeaderComponent={() => (
             <>
               {renderHeader()}
+              {renderSearchBar()}
               {renderFilterSection()}
             </>
           )}
@@ -610,30 +618,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
-  },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFF",
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    height: 45,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-    marginHorizontal: 20,
-    marginBottom: 15,
-    marginTop: 10,
-  },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: "#333",
   },
   errorText: {
     color: "#e53935",
@@ -909,6 +893,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
     marginTop: 5,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F0F0F0",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    marginHorizontal: 20,
+    marginBottom: 10,
+    height: 45,
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: "#333",
+  },
+  clearSearchButton: {
+    padding: 5,
   },
 });
 

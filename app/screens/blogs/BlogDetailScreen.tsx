@@ -52,6 +52,7 @@ const BlogDetailScreen = () => {
         const blogData = await fetchBlogById(blogId);
         if (!blogData) {
           console.error("Blog not found with ID:", blogId);
+          return;
         }
         setBlog(blogData);
       } catch (error) {
@@ -60,22 +61,22 @@ const BlogDetailScreen = () => {
         setLoading(false);
       }
     };
-
+  
     loadBlogDetails();
   }, [blogId]);
 
   const handleLikeBlog = async () => {
     if (!blog?.blogID) return;
-    
+
     try {
       const success = await likeBlog(blog.blogID);
       if (success) {
         setIsLiked(true);
-        setBlog(prevBlog => {
+        setBlog((prevBlog) => {
           if (!prevBlog) return null;
           return {
             ...prevBlog,
-            like: (prevBlog.like || 0) + 1
+            like: (prevBlog.like || 0) + 1,
           };
         });
       }
@@ -86,7 +87,7 @@ const BlogDetailScreen = () => {
 
   const handleShareBlog = async () => {
     if (!blog) return;
-    
+
     try {
       await Share.share({
         message: `Xem bài viết "${blog.title}" ngay!`,
@@ -99,14 +100,14 @@ const BlogDetailScreen = () => {
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "Không có thông tin";
-    
+
     const date = new Date(dateString);
     return date.toLocaleDateString("vi-VN", {
       day: "2-digit",
-      month: "2-digit", 
+      month: "2-digit",
       year: "numeric",
       hour: "2-digit",
-      minute: "2-digit"
+      minute: "2-digit",
     });
   };
 
@@ -150,16 +151,27 @@ const BlogDetailScreen = () => {
         </View>
 
         <View style={styles.content}>
-          {blog.imageUrl && (
+          {(blog.imageUrl ||
+            (blog.blogImages &&
+              blog.blogImages.$values &&
+              blog.blogImages.$values.length > 0)) && (
             <Image
-              source={{ uri: blog.imageUrl }}
+              source={{
+                uri:
+                  blog.imageUrl ||
+                  (blog.blogImages.$values[0] &&
+                    blog.blogImages.$values[0].imageUrl),
+              }}
               style={styles.featuredImage}
               resizeMode="cover"
+              onError={(e) =>
+                console.error("Image load error", e.nativeEvent.error)
+              }
             />
           )}
-          
+
           <Text style={styles.blogTitle}>{blog.title}</Text>
-          
+
           <View style={styles.metadataContainer}>
             <View style={styles.metadataItem}>
               <Feather name="user" size={16} color="#666" />
@@ -167,7 +179,7 @@ const BlogDetailScreen = () => {
                 Tác giả: {blog.author || "Không có thông tin"}
               </Text>
             </View>
-            
+
             {blog.category && (
               <View style={styles.metadataItem}>
                 <Feather name="tag" size={16} color="#666" />
@@ -176,7 +188,7 @@ const BlogDetailScreen = () => {
                 </Text>
               </View>
             )}
-            
+
             {blog.uploadDate && (
               <View style={styles.metadataItem}>
                 <Feather name="calendar" size={16} color="#666" />
@@ -185,7 +197,7 @@ const BlogDetailScreen = () => {
                 </Text>
               </View>
             )}
-            
+
             {blog.updateDate && (
               <View style={styles.metadataItem}>
                 <Feather name="edit" size={16} color="#666" />
@@ -194,24 +206,20 @@ const BlogDetailScreen = () => {
                 </Text>
               </View>
             )}
-            
+
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
                 <Feather name="eye" size={16} color="#666" />
-                <Text style={styles.statText}>
-                  {blog.view || 0} lượt xem
-                </Text>
+                <Text style={styles.statText}>{blog.view || 0} lượt xem</Text>
               </View>
-              
+
               <View style={styles.statItem}>
                 <Feather name="heart" size={16} color="#666" />
-                <Text style={styles.statText}>
-                  {blog.like || 0} lượt thích
-                </Text>
+                <Text style={styles.statText}>{blog.like || 0} lượt thích</Text>
               </View>
             </View>
           </View>
-          
+
           {blog.productId && (
             <View style={styles.productInfo}>
               <Text style={styles.productTitle}>
@@ -219,27 +227,32 @@ const BlogDetailScreen = () => {
               </Text>
             </View>
           )}
-          
+
           <View style={styles.divider} />
-          
+
           <Text style={styles.blogContent}>{blog.content}</Text>
-          
+
           <View style={styles.actionContainer}>
-            <TouchableOpacity 
-              style={[styles.actionButton, isLiked && styles.actionButtonActive]} 
+            <TouchableOpacity
+              style={[
+                styles.actionButton,
+                isLiked && styles.actionButtonActive,
+              ]}
               onPress={handleLikeBlog}
             >
-              <Feather 
-                name="heart" 
-                size={20} 
-                color={isLiked ? "#fff" : "#6C63FF"} 
+              <Feather
+                name="heart"
+                size={20}
+                color={isLiked ? "#fff" : "#6C63FF"}
               />
-              <Text style={[styles.actionText, isLiked && styles.actionTextActive]}>
+              <Text
+                style={[styles.actionText, isLiked && styles.actionTextActive]}
+              >
                 Thích
               </Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.actionButton}
               onPress={handleShareBlog}
             >
@@ -254,9 +267,9 @@ const BlogDetailScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: "#fff" 
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",
@@ -264,49 +277,43 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: "#f8f8f8",
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0"
+    borderBottomColor: "#e0e0e0",
   },
-  headerTitle: { 
-    fontSize: 18, 
-    fontWeight: "bold", 
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
     marginLeft: 10,
-    flex: 1 
+    flex: 1,
   },
-  content: { 
-    padding: 16 
+  content: {
+    padding: 16,
   },
-  featuredImage: {
-    width: "100%",
-    height: 200,
-    borderRadius: 10,
+  blogTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
     marginBottom: 16,
-  },
-  blogTitle: { 
-    fontSize: 22, 
-    fontWeight: "bold", 
-    marginBottom: 16,
-    color: "#333"
-  },
-  blogContent: { 
-    fontSize: 16, 
     color: "#333",
-    lineHeight: 24
+  },
+  blogContent: {
+    fontSize: 16,
+    color: "#333",
+    lineHeight: 24,
   },
   metadataContainer: {
     marginBottom: 16,
     backgroundColor: "#f9f9f9",
     padding: 12,
-    borderRadius: 8
+    borderRadius: 8,
   },
   metadataItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8
+    marginBottom: 8,
   },
   metadataText: {
     marginLeft: 8,
     color: "#666",
-    fontSize: 14
+    fontSize: 14,
   },
   statsContainer: {
     flexDirection: "row",
@@ -314,21 +321,21 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: "#e0e0e0"
+    borderTopColor: "#e0e0e0",
   },
   statItem: {
     flexDirection: "row",
-    alignItems: "center"
+    alignItems: "center",
   },
   statText: {
     marginLeft: 6,
     color: "#666",
-    fontSize: 14
+    fontSize: 14,
   },
   divider: {
     height: 1,
     backgroundColor: "#e0e0e0",
-    marginVertical: 16
+    marginVertical: 16,
   },
   actionContainer: {
     flexDirection: "row",
@@ -336,7 +343,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: "#e0e0e0"
+    borderTopColor: "#e0e0e0",
   },
   actionButton: {
     flexDirection: "row",
@@ -345,45 +352,45 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#6C63FF"
+    borderColor: "#6C63FF",
   },
   actionButtonActive: {
-    backgroundColor: "#6C63FF"
+    backgroundColor: "#6C63FF",
   },
   actionText: {
     marginLeft: 8,
     color: "#6C63FF",
-    fontWeight: "bold"
+    fontWeight: "bold",
   },
   actionTextActive: {
-    color: "#fff"
+    color: "#fff",
   },
   productInfo: {
     backgroundColor: "#efefff",
     padding: 12,
     borderRadius: 8,
-    marginBottom: 16
+    marginBottom: 16,
   },
   productTitle: {
     fontWeight: "bold",
-    color: "#444"
+    color: "#444",
   },
-  loadingContainer: { 
-    flex: 1, 
-    justifyContent: "center", 
-    alignItems: "center" 
-  },
-  errorContainer: { 
-    flex: 1, 
-    justifyContent: "center", 
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
-    padding: 20
   },
-  errorText: { 
-    fontSize: 16, 
-    color: "#FF6C63", 
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#FF6C63",
     marginTop: 8,
-    textAlign: "center"
+    textAlign: "center",
   },
   backButton: {
     marginTop: 16,
@@ -391,9 +398,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#6C63FF",
     borderRadius: 8,
   },
-  backButtonText: { 
-    color: "white", 
-    fontWeight: "bold" 
+  backButtonText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  featuredImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: 10,
+    marginBottom: 16,
+    backgroundColor: "#f0f0f0",
   },
 });
 
