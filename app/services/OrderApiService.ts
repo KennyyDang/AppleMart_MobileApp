@@ -2,8 +2,7 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert } from "react-native";
 
-const API_BASE_URL = "http://192.168.1.15:5069/api";
-
+const API_BASE_URL = "https://api.apple-mart.capybara.pro.vn/api";
 
 export interface OrderDetail {
   orderDetailID: number;
@@ -30,10 +29,13 @@ export interface Order {
 }
 
 export interface Shipper {
+  id?: string;
   shipperID: string;
   name: string;
   phoneNumber: string;
   email?: string;
+  pendingOrdersCount?: number;
+  role?: string;
 }
 
 const apiClient = axios.create({
@@ -155,6 +157,59 @@ class OrderApiService {
       }
 
       throw error;
+    }
+  }
+
+  async getAllShippers(): Promise<Shipper[]> {
+    try {
+      const response = await apiClient.get("/Shipper/all");
+
+      // More verbose logging
+      console.log("Shipper API Response:", response.data);
+
+      let shippers: Shipper[] = [];
+
+      // Handle potential nested response structures
+      if (response.data) {
+        if (response.data.$values) {
+          shippers = response.data.$values;
+        } else if (Array.isArray(response.data)) {
+          shippers = response.data;
+        } else {
+          console.error(
+            "Unexpected shipper response structure:",
+            response.data
+          );
+          return [];
+        }
+      }
+
+      console.log("Processed Shippers:", shippers);
+
+      const validShippers = shippers
+        .map((shipper) => ({
+          shipperID: shipper?.id ?? "", // Change from shipperID to id
+          name: shipper?.name ?? "Unknown",
+          phoneNumber: shipper?.phoneNumber ?? "",
+          email: shipper?.email ?? "",
+          pendingOrdersCount: shipper?.pendingOrdersCount ?? 0,
+          role: shipper?.role ?? "Shipper",
+        }))
+        .filter((shipper) => shipper.shipperID !== "");
+
+      return validShippers;
+    } catch (error) {
+      console.error("Comprehensive Shipper Fetch Error:", error);
+      // More detailed error logging
+      if (axios.isAxiosError(error)) {
+        console.error("Detailed Axios Error:", {
+          status: error.response?.status,
+          data: JSON.stringify(error.response?.data),
+          headers: error.response?.headers,
+          message: error.message,
+        });
+      }
+      return [];
     }
   }
 }
