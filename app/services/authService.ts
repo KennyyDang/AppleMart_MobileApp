@@ -3,8 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 
-// const API_URL = 'https://api.apple-mart.capybara.pro.vn';
-const API_URL = 'https://172.20.10.2:5069';
+const API_URL = 'https://api.apple-mart.capybara.pro.vn';
+// const API_URL = 'https://172.20.10.2:5069';
 
 
 const getAuthHeaders = async () => {

@@ -17,7 +17,8 @@ interface NotificationResponse {
   $values: Notification[];
 }
 
-const API_BASE_URL = 'http://172.20.10.2:5069/api';
+// const API_BASE_URL = 'http://172.20.10.2:5069/api';
+const API_BASE_URL = 'https://api.apple-mart.capybara.pro.vn/api';
 
 class NotificationApiService {
   private apiClient: AxiosInstance;
