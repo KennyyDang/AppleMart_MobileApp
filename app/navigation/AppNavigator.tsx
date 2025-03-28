@@ -12,23 +12,30 @@ import {
   AppWindow,
 } from "phosphor-react-native";
 
+import * as Notifications from 'expo-notifications';
+import { registerForPushNotificationsAsync, sendPushNotification } from '../utils/notifications';
+import NotificationApiService, { Notification } from '../services/NotificationApiService';
+
 import ManageScreen from "../screens/ManageScreen";
-import SettingScreen from "../screens/SettingScreen";
-import AccountScreen from "../screens/AccountScreen";
-import NotificationScreen from "@/screens/NotificationScreen";
-import LoginScreen from "../screens/LoginScreen";
-import RegisterScreen from "../screens/RegisterScreen";
 
 import OrderScreen from "../screens/order/OrderScreen";
 import OrderDetailScreen from "../screens/order/OrderDetailScreen";
 
 import BlogScreen from "../screens/blogs/BlogScreen";
 import AddBlogScreen from "../screens/blogs/AddBlogScreen";
-
 import EditBlogScreen from "../screens/blogs/EditBlogScreen";
 import BlogDetailScreen from "../screens/blogs/BlogDetailScreen";
+
+import SettingScreen from "../screens/settings/SettingScreen";
+import AccountScreen from "../screens/settings/AccountScreen";
+import NotificationScreen from "@/screens/settings/NotificationScreen";
+
+import LoginScreen from "../screens/login/LoginScreen";
+import RegisterScreen from "../screens/login/RegisterScreen";
+
 import { BlogPost } from "../services/BlogApiService";
 import { TabBarProvider, useTabBar } from "./TabBarContext";
+
 
 type BlogStackParamList = {
   BlogList: undefined;
@@ -67,7 +74,6 @@ const BlogStackNavigator = () => {
   );
 };
 
-// Tạo Bottom Tab Navigator cho màn hình chính
 const MainTabNavigator = () => {
   const { isTabBarVisible } = useTabBar();
   const tabBarHeight = useRef(
@@ -138,7 +144,84 @@ const MainTabNavigator = () => {
   );
 };
 
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
 const AppNavigator = () => {
+  const [expoPushToken, setExpoPushToken] = useState('');
+  const [lastCheckedNotificationId, setLastCheckedNotificationId] = useState(0);
+
+  useEffect(() => {
+    // Đăng ký push notifications
+    async function setupPushNotifications() {
+      const token = await registerForPushNotificationsAsync();
+      if (token) {
+        setExpoPushToken(token.data);
+      }
+    }
+
+    // Hàm kiểm tra và gửi notification mới
+    async function checkNewNotifications() {
+      try {
+        console.log('Checking notifications...');
+        console.log('Current Push Token:', expoPushToken);
+
+        if (!expoPushToken) {
+          console.log('No push token available. Skipping notification check.');
+          return;
+        }
+
+        const notifications = await NotificationApiService.getNotifications();
+        console.log('Total notifications:', notifications.length);
+        
+        const newNotifications = notifications.filter(
+          notification => 
+            notification.notificationID > lastCheckedNotificationId && 
+            !notification.isRead
+        );
+
+        console.log('New unread notifications:', newNotifications.length);
+
+        for (const notification of newNotifications) {
+          console.log('Sending push notification:', notification);
+          
+          await sendPushNotification(expoPushToken, {
+            title: notification.header,
+            body: notification.content,
+            data: { notificationId: notification.notificationID }
+          });
+
+          setLastCheckedNotificationId(notification.notificationID);
+        }
+      } catch (error) {
+        console.error('Error in checkNewNotifications:', error);
+      }
+    }
+
+    setupPushNotifications();
+    const notificationInterval = setInterval(checkNewNotifications, 30000); 
+
+    const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+      const notificationId = response.notification.request.content.data.notificationId;
+      console.log('Notification clicked:', notificationId);
+    });
+
+    const receivedListener = Notifications.addNotificationReceivedListener(notification => {
+      console.log('Notification Received:', notification);
+    });
+
+    return () => {
+      clearInterval(notificationInterval);
+      responseListener.remove();
+      receivedListener.remove();
+    };
+  }, [expoPushToken]);
+
   return (
     <TabBarProvider>
       <Stack.Navigator screenOptions={{ headerShown: false }}>

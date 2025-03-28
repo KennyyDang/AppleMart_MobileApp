@@ -24,7 +24,8 @@ interface LoginScreenProps {
   route: LoginScreenRouteProp;
 }
 
-const API_URL = 'https://api.apple-mart.capybara.pro.vn'; 
+// const API_URL = 'https://api.apple-mart.capybara.pro.vn';
+const API_URL = 'http://192.168.1.6:5069';
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -109,7 +110,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   return (
     <View style={styles.container}>
       {/* Logo */}
-      <Image source={require('../../assets/Apple.png')} style={styles.logo} />
+      <Image source={require("assets/Apple.png")} style={styles.logo} />
 
       {/* Email Input */}
       <TextInput

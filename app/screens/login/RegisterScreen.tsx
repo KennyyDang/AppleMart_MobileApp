@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
-import { registerUser } from '../services/authService';
+import { registerUser } from '../../services/authService';
 
 type RootStackParamList = {
   Login: undefined;
@@ -61,7 +61,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Image source={require('../../assets/Apple.png')} style={styles.logo} />
+        <Image source={require("assets/Apple.png")} style={styles.logo} />
 
         <TextInput
           style={styles.input}

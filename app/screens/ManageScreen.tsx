@@ -24,6 +24,8 @@ interface TopCustomer {
   customerName: string;
   totalPurchases: number;
   rank?: number;
+  userID?: string;
+  totalSpent?: number;
 }
 
 const ManageScreen = () => {
@@ -90,8 +92,11 @@ const ManageScreen = () => {
         const customersData = topCustomersResponse.data.topCustomers.$values;
 
         const rankedCustomers = customersData.map(
-          (customer: TopCustomer, index: number) => ({
-            ...customer,
+          (customer: any, index: number) => ({
+            customerName: customer.customerName || customer.userID,
+            totalPurchases: customer.totalPurchases || 0,
+            userID: customer.userID,
+            totalSpent: customer.totalSpent ?? 0, // Use nullish coalescing to provide a default of 0
             rank: index + 1,
           })
         );
@@ -102,7 +107,6 @@ const ManageScreen = () => {
       setLoading(false);
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
-      setError(err.message);
       setLoading(false);
     }
   };
@@ -313,9 +317,7 @@ const ManageScreen = () => {
               ))}
             </View>
             <View style={styles.topCustomersContainer}>
-              <Text style={styles.topCustomersTitle}>
-                Top Customers
-              </Text>
+              <Text style={styles.topCustomersTitle}>Top Customers</Text>
               {topCustomers.length > 0 ? (
                 topCustomers.map((customer) => (
                   <View
@@ -333,7 +335,7 @@ const ManageScreen = () => {
                         {/* Display userID if no name is available */}
                       </Text>
                       <Text style={styles.topCustomerPurchases}>
-                        ${customer.totalSpent.toFixed(2)} Total
+                        ${(customer.totalSpent ?? 0).toFixed(2)} Total
                       </Text>
                     </View>
                   </View>
