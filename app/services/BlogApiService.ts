@@ -1,8 +1,8 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// const API_URL = "https://api.apple-mart.capybara.pro.vn/api/Blog";
-const API_URL = "http://172.20.10.2:5069/api/Blog";
+const API_URL = "https://api.apple-mart.capybara.pro.vn/api/Blog";
+// const API_URL = "http://172.20.10.2:5069/api/Blog";
 
 // Create an axios instance with base configuration
 const apiClient = axios.create({

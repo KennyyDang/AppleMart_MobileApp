@@ -2,8 +2,8 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert } from "react-native";
 
-// const API_BASE_URL = "https://api.apple-mart.capybara.pro.vn/api";
-const API_BASE_URL = "http://172.20.10.2:5069/api";
+const API_BASE_URL = "https://api.apple-mart.capybara.pro.vn/api";
+// const API_BASE_URL = "http://172.20.10.2:5069/api";
 
 
 export interface OrderDetail {
