@@ -154,7 +154,7 @@ Notifications.setNotificationHandler({
 
 const AppNavigator = () => {
   const [expoPushToken, setExpoPushToken] = useState('');
-  const [lastCheckedNotificationId, setLastCheckedNotificationId] = useState(0);
+  const [lastCheckedNotificationID, setLastCheckedNotificationID] = useState(0);
 
   useEffect(() => {
     // Đăng ký push notifications
@@ -168,8 +168,6 @@ const AppNavigator = () => {
     // Hàm kiểm tra và gửi notification mới
     async function checkNewNotifications() {
       try {
-        console.log('Checking notifications...');
-        console.log('Current Push Token:', expoPushToken);
 
         if (!expoPushToken) {
           console.log('No push token available. Skipping notification check.');
@@ -177,26 +175,23 @@ const AppNavigator = () => {
         }
 
         const notifications = await NotificationApiService.getNotifications();
-        console.log('Total notifications:', notifications.length);
         
         const newNotifications = notifications.filter(
           notification => 
-            notification.notificationID > lastCheckedNotificationId && 
+            notification.notificationID > lastCheckedNotificationID && 
             !notification.isRead
         );
 
-        console.log('New unread notifications:', newNotifications.length);
 
         for (const notification of newNotifications) {
-          console.log('Sending push notification:', notification);
           
           await sendPushNotification(expoPushToken, {
             title: notification.header,
             body: notification.content,
-            data: { notificationId: notification.notificationID }
+            data: { notificationID: notification.notificationID }
           });
 
-          setLastCheckedNotificationId(notification.notificationID);
+          setLastCheckedNotificationID(notification.notificationID);
         }
       } catch (error) {
         console.error('Error in checkNewNotifications:', error);
@@ -206,13 +201,22 @@ const AppNavigator = () => {
     setupPushNotifications();
     const notificationInterval = setInterval(checkNewNotifications, 30000); 
 
-    const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
-      const notificationId = response.notification.request.content.data.notificationId;
-      console.log('Notification clicked:', notificationId);
+    const responseListener = Notifications.addNotificationResponseReceivedListener(async (response) => {
+      const notificationID = response.notification.request.content.data.notificationID;
+      console.log('Notification clicked:', notificationID);
+
+      // Mark the notification as read
+      if (notificationID) {
+        try {
+          const result = await NotificationApiService.markNotificationAsRead(Number(notificationID));
+          console.log(`Notification ${notificationID} marked as read:`, result);
+        } catch (error) {
+          console.error(`Error marking notification ${notificationID} as read:`, error);
+        }
+      }
     });
 
     const receivedListener = Notifications.addNotificationReceivedListener(notification => {
-      console.log('Notification Received:', notification);
     });
 
     return () => {

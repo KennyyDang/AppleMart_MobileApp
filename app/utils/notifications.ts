@@ -3,6 +3,12 @@ import * as Notifications from 'expo-notifications'; // Expo Notifications
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
+interface NotificationData {
+  notificationID?: number;
+  isRead?: boolean;
+  [key: string]: any;
+}
+
 export async function registerForPushNotificationsAsync() {
     let token;
 
@@ -39,37 +45,40 @@ export async function registerForPushNotificationsAsync() {
 }
 
 export async function sendPushNotification(
-    expoPushToken: string, 
-    {
-      title = 'Thông báo mới', 
-      body = 'Bạn có thông báo mới', 
-      data = {}
-    } = {}
-  ) {
-    const message = {
-      to: expoPushToken,
-      sound: 'default',
-      title,
-      body,
-      data,
-    };
-  
-    try {
-      const response = await fetch('https://exp.host/--/api/v2/push/send', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Accept-encoding': 'gzip, deflate',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(message),
-      });
-  
-      const result = await response.json();
-      console.log('Push Notification Response:', result);
-    } catch (error) {
-      console.error('Error sending notification:', error);
-    }
+  expoPushToken: string, 
+  {
+    title = 'Thông báo mới', 
+    body = 'Bạn có thông báo mới', 
+    data = {} as { notificationID?: number }
+  } = {}
+) {
+  const message = {
+    to: expoPushToken,
+    sound: 'default',
+    title,
+    body,
+    data: {
+      notificationID: data.notificationID || null,
+      id: data.notificationID || null
+    },
+  };
+
+  try {
+    console.log('Sending Push Notification Message:', JSON.stringify(message, null, 2));
+    
+    const response = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Accept-encoding': 'gzip, deflate',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(message),
+    });
+  } catch (error) {
+    console.error('Error sending notification:', error);
+    throw error;
+  }
 }
 
 export default {
