@@ -321,7 +321,7 @@ const ManageScreen = () => {
               {topCustomers.length > 0 ? (
                 topCustomers.map((customer) => (
                   <View
-                    key={customer.userID} // Use userID as key instead of customerName
+                    key={customer.userID} // Keep userID as key
                     style={styles.topCustomerItem}
                   >
                     <View style={styles.topCustomerRankContainer}>
@@ -331,8 +331,8 @@ const ManageScreen = () => {
                     </View>
                     <View style={styles.topCustomerDetails}>
                       <Text style={styles.topCustomerName} numberOfLines={1}>
-                        {customer.userID}{" "}
-                        {/* Display userID if no name is available */}
+                        {customer.customerName}{" "}
+                        {/* Changed from userID to customerName */}
                       </Text>
                       <Text style={styles.topCustomerPurchases}>
                         ${(customer.totalSpent ?? 0).toFixed(2)} Total
