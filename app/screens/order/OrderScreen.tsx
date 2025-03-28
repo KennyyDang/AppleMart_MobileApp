@@ -116,7 +116,6 @@ const OrderScreen = () => {
   const fetchShippers = async () => {
     try {
       const fetchedShippers = await orderApiService.getAllShippers();
-      console.log("Fetched Shippers:", fetchedShippers);  // Add this line
       setShippers(fetchedShippers);
     } catch (error) {
       console.error("Error fetching shippers:", error);
@@ -488,10 +487,10 @@ const OrderScreen = () => {
 
   const renderHeader = () => (
     <>
-      <View style={styles.header}>
+      <View style={styles.headerContainer}>
         <Text style={styles.headerTitle}>Order</Text>
       </View>
-
+  
       {error && <Text style={styles.errorText}>{error}</Text>}
     </>
   );
